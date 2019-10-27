@@ -17,10 +17,15 @@ DWORD open_file_pointer_positions[MAX_OPEN_FILES];
 // Partições
 #define MAX_PARTITIONS 4
 
-#define NO_MOUNTED_PARTITIONS -1
-int mounted_partition = NO_MOUNTED_PARTITIONS;
+#define FORMATED_PARTITION true
+#define UNFORMATED_PARTITION false
+boolean is_the_partition_formated[MAX_PARTITIONS] = { UNFORMATED_PARTITION };
 
-DWORD partition_first_sector;
+#define UNDEFINED_BOOT_SECTOR 0
+DWORD partition_boot_sectors[MAX_PARTITIONS] = { UNDEFINED_BOOT_SECTOR };
+
+#define NO_MOUNTED_PARTITION -1
+int mounted_partiction = NO_MOUNTED_PARTITION;
 
 
 // Flags de retorno
@@ -45,7 +50,28 @@ Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
 {
-    return -1;
+	char buffer[SECTOR_SIZE]; // Buffer para armazenar conteúdo (setor) a ser usado em leituras e escritas de setores
+
+	if (partition_boot_sectors[partition] == UNDEFINED_BOOT_SECTOR) // A partição ainda não teve o seu endereço inicial guardado
+	{
+		if (read_sector(0, buffer) != SUCCESS) // Falha ao ler o MBR
+			return ERROR;
+
+		partition_boot_sectors[partition] = // Guarda o endereço do primeiro setor da partição a ser formatada
+		 (uint)buffer[8 + 32 * partition + 3] >> 8*3 &
+		  (uint)buffer[8 + 32 * partition + 2] >> 8*2 &
+		   (uint)buffer[8 + 32 * partition + 1] >> 8*1 &
+		    (uint)buffer[8 + 32 * partition + 0] >> 8*0;
+	}
+
+	/* 
+	buffer = SUPERBLOCO; // Armazena no buffer o superbloco a ser escrito no primeiro setor da partição a ser formata
+	*/
+
+	if (read_sector(partition_first_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
+		return ERROR;
+	
+    return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -57,29 +83,12 @@ int mount(int partition)
 		return ERROR
 	if (partition < 0) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
-	if (mounted_partition != NO_MOUNTED_PARTITIONS) // Já existe uma partição montada
+	if (mounted_partition != NO_MOUNTED_PARTITION) // Já existe uma partição montada
+		return ERROR;
+	if (!is_the_partition_formated[partition]) // A partição a ser montada não foi formatada
 		return ERROR;
 	
-	char buffer[SECTOR_SIZE]; // Buffer armazenar conteúdo (setor) a ser usado em leituras e escritas de setores
-
-	if (read_sector(0, buffer) != SUCCESS) // Falha ao ler o MBR
-		return ERROR;
-
-	partition_first_sector = // Guarda o endereço do primeiro setor da partição a ser montada
-	 (uint)buffer[8 + 32 * partition + 3] >> 8*3 &
-	  (uint)buffer[8 + 32 * partition + 2] >> 8*2 &
-	   (uint)buffer[8 + 32 * partition + 1] >> 8*1 &
-	    (uint)buffer[8 + 32 * partition + 0] >> 8*0;
-
-	/* 
-	buffer = SUPERBLOCO; // Armazena no buffer o superbloco a ser escrito no primeiro setor da partição a ser montada
-	*/
-
-	if (read_sector(partition_first_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser montada (ou seja, monta ela)
-		return ERROR;
-	
-
-	mounted_partition = partition; // Atualiza a informação da partição montada
+	mounted_partition = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
     return SUCCESS;
 }
 
@@ -88,7 +97,11 @@ Função:	Desmonta a partição atualmente montada, liberando o ponto de montage
 -----------------------------------------------------------------------------*/
 int unmount(void)
 {
-    return -1;
+	if (mounted_partition == NO_MOUNTED_PARTITION) // Não existe uma partição montada
+		return ERROR;
+	
+	mounted_partiction = NO_MOUNTED_PARTITION; // Define que não há mais partições montadas (ou seja, desmonta a partição que estava montada)
+    return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
