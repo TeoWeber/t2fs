@@ -68,9 +68,10 @@ int format2(int partition, int sectors_per_block)
 	buffer = SUPERBLOCO; // Armazena no buffer o superbloco a ser escrito no primeiro setor da partição a ser formata
 	*/
 
-	if (read_sector(partition_first_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
+	if (read_sector(partition_boot_sectors[partition], buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
 		return ERROR;
 	
+	is_the_partition_formated[partition] = FORMATED_PARTITION; // Define a partição formatada como formatada
     return SUCCESS;
 }
 
