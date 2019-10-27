@@ -7,7 +7,7 @@
 | int format2 (int partition, int sectors_per_block) | | Não|
 | int mount (int partition) | | Não |
 | int umount (void) | | Não |
-| int identify2 (char *name, int size) | | Não |
+| int identify2 (char *name, int size) | Fred | Sim |
 | FILE2 create2 (char *filename) | | Não |
 | int delete2 (char *name) | | Não |
 | FILE2 open2 (char *name) | | Não |
