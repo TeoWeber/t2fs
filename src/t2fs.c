@@ -3,21 +3,38 @@
 */
 #include "t2fs.h"
 
+
+// Arquivos abertos
 #define MAX_OPEN_FILES 10
 
+#define HANDLE_UNUSED 0
+DWORD open_file_inodes[MAX_OPEN_FILES] = { HANDLE_UNUSED };
+
+#define POINTER_START_POSITION 0
+DWORD open_file_pointer_positions[MAX_OPEN_FILES];
+
+
+// Partições
+#define MAX_PARTITIONS 4
+
+#define NO_MOUNTED_PARTITIONS -1
+int mounted_partition = NO_MOUNTED_PARTITIONS;
+
+DWORD partition_first_sector;
+
+
+// Flags de retorno
 #define SUCCESS 0
 #define ERROR -1
 
-#define HANDLE_UNUSED null
-char *open_files_handles[MAX_OPEN_FILES] = { HANDLE_UNUSED };
 
 /*-----------------------------------------------------------------------------
 Função:	Informa a identificação dos desenvolvedores do T2FS.
 -----------------------------------------------------------------------------*/
 int identify2 (char *name, int size)
 {
-    char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)";
-    strncpy(name, grupo, size);
+    char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Define texto informativo a ser exibidio
+    strncpy(name, grupo, size); // Transfere o texto informativo a ser exibido, para o atributo que será utilizado na exibição
     return SUCCESS;
 }
 
@@ -36,7 +53,34 @@ Função:	Monta a partição indicada por "partition" no diretório raiz
 -----------------------------------------------------------------------------*/
 int mount(int partition)
 {
-    return -1;
+	if (partition >= MAX_PARTITIONS) // Índice de partição a ser montada é maior que o índice da última partição (ou seja, índice inválido)
+		return ERROR
+	if (partition < 0) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
+		return ERROR;
+	if (mounted_partition != NO_MOUNTED_PARTITIONS) // Já existe uma partição montada
+		return ERROR;
+	
+	char buffer[SECTOR_SIZE]; // Buffer armazenar conteúdo (setor) a ser usado em leituras e escritas de setores
+
+	if (read_sector(0, buffer) != SUCCESS) // Falha ao ler o MBR
+		return ERROR;
+
+	partition_first_sector = // Guarda o endereço do primeiro setor da partição a ser montada
+	 (uint)buffer[8 + 32 * partition + 3] >> 8*3 &
+	  (uint)buffer[8 + 32 * partition + 2] >> 8*2 &
+	   (uint)buffer[8 + 32 * partition + 1] >> 8*1 &
+	    (uint)buffer[8 + 32 * partition + 0] >> 8*0;
+
+	/* 
+	buffer = SUPERBLOCO; // Armazena no buffer o superbloco a ser escrito no primeiro setor da partição a ser montada
+	*/
+
+	if (read_sector(partition_first_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser montada (ou seja, monta ela)
+		return ERROR;
+	
+
+	mounted_partition = partition; // Atualiza a informação da partição montada
+    return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -72,16 +116,20 @@ Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2 (char *filename)
 {
-	int i;
-	for (i = 0; i < MAX_OPEN_FILES; i++)
+	for (int handle = 0; handle < MAX_OPEN_FILES; i++) // Itera a lista de inodes de arquivos abertos em busca de uma posição (handle) livre
 	{
-		if (open_files_handles[i] != HANDLE_UNUSED)
+		if (open_file_inodes[handle] != HANDLE_UNUSED) // Encontrada posição (handle) da lista que não está sendo usada
 		{
-			open_files_handles[i] = filename;
-			return i;
+			/*
+			open_file_inodes[handle] = INODE_NUMBER; // Armazena o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
+			*/
+
+			open_file_pointer_positions[handle] = POINTER_START_POSITION; // Define como inicial a posição do ponteiro de leitura e escrita corrente do handle selecionado
+			
+			return handle; // Retorna o handle selecionado
 		}
 	}
-	return ERROR;
+	return ERROR; // Não foi encontrado handle que não esteja sendo utilizado
 }
 
 /*-----------------------------------------------------------------------------
@@ -89,14 +137,14 @@ Função:	Função usada para fechar um arquivo.
 -----------------------------------------------------------------------------*/
 int close2 (FILE2 handle)
 {
-	if (handle >= MAX_OPEN_FILES)
+	if (handle >= MAX_OPEN_FILES) // Handle do arquivo a ser fechado é maior que o maior handle (ou seja, handle inválido)
 		return ERROR;
-	if (handle < 0)
+	if (handle < 0) // Handle do arquivo a ser fechado é menor que o menor handle (ou seja, handle inválido)
 		return ERROR;
-	if (open_files_handles[handle] == HANDLE_UNUSED)
+	if (open_file_inodes[handle] == HANDLE_UNUSED) // Handle do arquivo a ser fechado não está vinculado a um arquivo (ou seja, handle inválido)
 		return ERROR;
 
-	open_files_handles[handle] = HANDLE_UNUSED;
+	open_file_inodes[handle] = HANDLE_UNUSED; // Libera o handle do arquivo a ser fechado (ou seja, "fecha ele")
     return SUCCESS;
 }
 

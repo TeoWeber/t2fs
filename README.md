@@ -5,7 +5,7 @@
 | ATIVIDADE                                          | Quem?      | Pronta? |
 | -------------------------------------------------- | ---------- | ------- |
 | int format2 (int partition, int sectors_per_block) | | Não|
-| int mount (int partition) | | Não |
+| int mount (int partition) | Fred | Não |
 | int umount (void) | | Não |
 | int identify2 (char *name, int size) | Fred | Sim |
 | FILE2 create2 (char *filename) | | Não |
