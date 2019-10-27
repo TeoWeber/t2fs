@@ -3,7 +3,13 @@
 */
 #include "t2fs.h"
 
+#define MAX_OPEN_FILES 10
+
 #define SUCCESS 0
+#define ERROR -1
+
+#define HANDLE_UNUSED null
+char *open_files_handles[MAX_OPEN_FILES] = { HANDLE_UNUSED };
 
 /*-----------------------------------------------------------------------------
 Função:	Informa a identificação dos desenvolvedores do T2FS.
@@ -66,7 +72,16 @@ Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2 (char *filename)
 {
-    return -1;
+	int i;
+	for (i = 0; i < MAX_OPEN_FILES; i++)
+	{
+		if (open_files_handles[i] != HANDLE_UNUSED)
+		{
+			open_files_handles[i] = filename;
+			return i;
+		}
+	}
+	return ERROR;
 }
 
 /*-----------------------------------------------------------------------------
@@ -74,7 +89,15 @@ Função:	Função usada para fechar um arquivo.
 -----------------------------------------------------------------------------*/
 int close2 (FILE2 handle)
 {
-    return -1;
+	if (handle >= MAX_OPEN_FILES)
+		return ERROR;
+	if (handle < 0)
+		return ERROR;
+	if (open_files_handles[handle] == HANDLE_UNUSED)
+		return ERROR;
+
+	open_files_handles[handle] = HANDLE_UNUSED;
+    return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------

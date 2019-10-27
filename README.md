@@ -10,8 +10,8 @@
 | int identify2 (char *name, int size) | Fred | Sim |
 | FILE2 create2 (char *filename) | | Não |
 | int delete2 (char *name) | | Não |
-| FILE2 open2 (char *name) | | Não |
-| int close2 (FILE2 handle) | | Não |
+| FILE2 open2 (char *name) | Fred | Não |
+| int close2 (FILE2 handle) | Fred | Não |
 | int read2 (FILE2 handle, char *buffer, int size) | | Não |
 | int write2 (FILE2 handle, char *buffer, int size) | | Não |
 | int opendir2 (void) | | Não |
