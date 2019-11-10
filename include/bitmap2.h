@@ -1,4 +1,3 @@
-
 #ifndef __BITMAP2__
 #define	__BITMAP2__
 
@@ -7,16 +6,16 @@
 
 
 /*------------------------------------------------------------------------
-Função:	Abre os bitmaps de uma partição
-Entra:	Número do setor onde se encontra o superbloco
+Funï¿½ï¿½o:	Abre os bitmaps de uma partiï¿½ï¿½o
+Entra:	Nï¿½mero do setor onde se encontra o superbloco
 Retorna: ==0, se sucesso
 		 !=0, se erro
 ------------------------------------------------------------------------*/
 int openBitmap2 (int superbloco_sector);
 
 /*------------------------------------------------------------------------
-Função:	Fecha os bitmaps de uma partição.
-		Garante que as informações que estão em cache serão atualizadas no disco
+Funï¿½ï¿½o:	Fecha os bitmaps de uma partiï¿½ï¿½o.
+		Garante que as informaï¿½ï¿½es que estï¿½o em cache serï¿½o atualizadas no disco
 Entra:	-
 Retorna: ==0, se sucesso
 		 !=0, se erro
@@ -32,7 +31,7 @@ Entra:
 	bitNumber -> bit a ser retornado
 Retorna:
 	Sucesso: valor do bit: ZERO ou UM (0 ou 1)
-	Erro: número negativo
+	Erro: nï¿½mero negativo
 ------------------------------------------------------------------------*/
 int	getBitmap2 (int handle, int bitNumber);
 
@@ -48,7 +47,7 @@ Entra:
 		!=0 -> coloca bit em 1
 Retorna
 	Sucesso: ZERO (0)
-	Erro: número negativo
+	Erro: nï¿½mero negativo
 ------------------------------------------------------------------------*/
 int	setBitmap2 (int handle, int bitNumber, int bitValue);
 
@@ -61,9 +60,9 @@ Entra:
 	bitValue -> valor procurado
 Retorna
 	Sucesso
-		Achou o bit: índice associado ao bit (número positivo)
-		Não achou: ZERO
-	Erro: número negativo
+		Achou o bit: ï¿½ndice associado ao bit (nï¿½mero positivo)
+		Nï¿½o achou: ZERO
+	Erro: nï¿½mero negativo
 ------------------------------------------------------------------------*/
 int	searchBitmap2 (int handle, int bitValue);
 

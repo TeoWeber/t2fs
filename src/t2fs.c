@@ -1,41 +1,6 @@
-
-/**
-*/
 #include "t2fs.h"
 
 
-// Arquivos abertos
-#define MAX_OPEN_FILES 10
-
-#define HANDLE_UNUSED 0
-DWORD open_file_inodes[MAX_OPEN_FILES] = { HANDLE_UNUSED };
-
-#define POINTER_START_POSITION 0
-DWORD open_file_pointer_positions[MAX_OPEN_FILES];
-
-
-// Partições
-#define MAX_PARTITIONS 4
-
-#define FORMATED_PARTITION true
-#define UNFORMATED_PARTITION false
-boolean is_the_partition_formated[MAX_PARTITIONS] = { UNFORMATED_PARTITION };
-
-#define UNDEFINED_BOOT_SECTOR 0
-DWORD partition_boot_sectors[MAX_PARTITIONS] = { UNDEFINED_BOOT_SECTOR };
-
-#define NO_MOUNTED_PARTITION -1
-int mounted_partiction = NO_MOUNTED_PARTITION;
-
-
-// Flags de retorno
-#define SUCCESS 0
-#define ERROR -1
-
-
-/*-----------------------------------------------------------------------------
-Função:	Informa a identificação dos desenvolvedores do T2FS.
------------------------------------------------------------------------------*/
 int identify2 (char *name, int size)
 {
     char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Define texto informativo a ser exibidio
@@ -50,6 +15,8 @@ Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para
 -----------------------------------------------------------------------------*/
 int format2(int partition, int sectors_per_block)
 {
+	initialize_file_system();
+
 	char buffer[SECTOR_SIZE]; // Buffer para armazenar conteúdo (setor) a ser usado em leituras e escritas de setores
 
 	if (partition_boot_sectors[partition] == UNDEFINED_BOOT_SECTOR) // A partição ainda não teve o seu endereço inicial guardado
@@ -71,7 +38,7 @@ int format2(int partition, int sectors_per_block)
 	if (read_sector(partition_boot_sectors[partition], buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
 		return ERROR;
 	
-	is_the_partition_formated[partition] = FORMATED_PARTITION; // Define a partição formatada como formatada
+	is_partition_formatted[partition] = PARTITION_FORMATTED; // Define a partição formatada como formatada
     return SUCCESS;
 }
 
@@ -80,13 +47,13 @@ Função:	Monta a partição indicada por "partition" no diretório raiz
 -----------------------------------------------------------------------------*/
 int mount(int partition)
 {
-	if (partition >= MAX_PARTITIONS) // Índice de partição a ser montada é maior que o índice da última partição (ou seja, índice inválido)
-		return ERROR
-	if (partition < 0) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
+	if ( partition >= MAX_PARTITIONS)  // Índice de partição a ser montada é maior que o índice da última partição (ou seja, índice inválido)
 		return ERROR;
-	if (mounted_partition != NO_MOUNTED_PARTITION) // Já existe uma partição montada
+	if ( partition < 0 ) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
-	if (!is_the_partition_formated[partition]) // A partição a ser montada não foi formatada
+	if ( mounted_partition != NO_MOUNTED_PARTITION ) // Já existe uma partição montada
+		return ERROR;
+	if ( !is_partition_formatted[partition] ) // A partição a ser montada não foi formatada
 		return ERROR;
 	
 	mounted_partition = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
@@ -98,10 +65,10 @@ Função:	Desmonta a partição atualmente montada, liberando o ponto de montage
 -----------------------------------------------------------------------------*/
 int unmount(void)
 {
-	if (mounted_partition == NO_MOUNTED_PARTITION) // Não existe uma partição montada
+	if ( mounted_partition == NO_MOUNTED_PARTITION )
 		return ERROR;
 	
-	mounted_partiction = NO_MOUNTED_PARTITION; // Define que não há mais partições montadas (ou seja, desmonta a partição que estava montada)
+	mounted_partition = NO_MOUNTED_PARTITION;
     return SUCCESS;
 }
 
@@ -130,62 +97,107 @@ Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2 (char *filename)
 {
-	for (int handle = 0; handle < MAX_OPEN_FILES; i++) // Itera a lista de inodes de arquivos abertos em busca de uma posição (handle) livre
+	// encontra um handle disponível para abrir o arquivo
+	for ( int handle = 0; handle < MAX_OPEN_FILES; handle++ ) 
 	{
-		if (open_file_inodes[handle] != HANDLE_UNUSED) // Encontrada posição (handle) da lista que não está sendo usada
+		if ( open_file_inodes[handle] != FILE_HANDLE_UNUSED )
 		{
 			/*
 			open_file_inodes[handle] = INODE_NUMBER; // Armazena o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
 			*/
 
-			open_file_pointer_positions[handle] = POINTER_START_POSITION; // Define como inicial a posição do ponteiro de leitura e escrita corrente do handle selecionado
-			
-			return handle; // Retorna o handle selecionado
+			open_file_pointer_positions[handle] = POINTER_START_POSITION;
+			return handle;
 		}
 	}
-	return ERROR; // Não foi encontrado handle que não esteja sendo utilizado
+	return ERROR;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para fechar um arquivo.
------------------------------------------------------------------------------*/
 int close2 (FILE2 handle)
 {
-	if (handle >= MAX_OPEN_FILES) // Handle do arquivo a ser fechado é maior que o maior handle (ou seja, handle inválido)
-		return ERROR;
-	if (handle < 0) // Handle do arquivo a ser fechado é menor que o menor handle (ou seja, handle inválido)
-		return ERROR;
-	if (open_file_inodes[handle] == HANDLE_UNUSED) // Handle do arquivo a ser fechado não está vinculado a um arquivo (ou seja, handle inválido)
+	if ( verify_file_handle( handle ) == false )
 		return ERROR;
 
-	open_file_inodes[handle] = HANDLE_UNUSED; // Libera o handle do arquivo a ser fechado (ou seja, "fecha ele")
+	open_file_inodes[handle] = FILE_HANDLE_UNUSED;  // Libera o handle do arquivo fechado
     return SUCCESS;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para realizar a leitura de uma certa quantidade
-		de bytes (size) de um arquivo.
------------------------------------------------------------------------------*/
 int read2 (FILE2 handle, char *buffer, int size)
 {
-    return -1;
+	initialize_file_system();
+
+	// verifica se o arquivo está aberto
+	if ( verify_file_handle( handle ) == false )
+		return ERROR;
+
+	OpenFile file = open_files[handle];
+	FileRecord file_record = file.record;
+
+	iNode file_inode;
+	if ( retrieve_inode( file_record.inodeNumber, &file_inode ) == ERROR )
+		return ERROR;
+
+	// verifica eof
+	if ( file.current_pointer >= file_inode.bytesFileSize )
+		return ERROR;
+
+	// verifica se size > o restante do arquivo
+	if ( size > file_inode.bytesFileSize - file.current_pointer )
+		size = file_inode.bytesFileSize - file.current_pointer;
+
+	// lê conteúdo e atualiza handle do arquivo
+	if ( read_n_bytes_from_file( file.current_pointer, size, file_inode, buffer ) == ERROR )
+		return ERROR;
+
+	file.current_pointer += size;
+	open_files[handle] = file;
+
+	return size;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para realizar a escrita de uma certa quantidade
-		de bytes (size) de  um arquivo.
------------------------------------------------------------------------------*/
 int write2 (FILE2 handle, char *buffer, int size)
 {
-    return -1;
+	initialize_file_system();
+
+	if ( verify_file_handle( handle ) == false )
+		return ERROR;
+
+	OpenFile file = open_files[handle];
+	FileRecord file_record = file.record;
+
+	iNode file_inode;
+	if ( retrieve_inode( file_record.inodeNumber, &file_inode ) == ERROR )
+		return ERROR;
+
+	int bytes_written = write_n_bytes_to_file( file.current_pointer, size, file_inode, buffer );
+	if ( bytes_written == ERROR )
+		return ERROR;
+
+    file.current_pointer += bytes_written;
+	open_files[handle] = file;
+	
+	return bytes_written;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função que abre um diretório existente no disco.
------------------------------------------------------------------------------*/
 DIR2 opendir2 (char *pathname)
 {
-    return -1;
+	initialize_file_system();
+
+	DIR2 dir_handle = retrieve_free_dir_handle();
+	if ( dir_handle == INVALID_HANDLE )
+		return ERROR;
+
+    FileRecord dir_record;
+	if ( retrieve_dir_record( pathname, &dir_record == ERROR ) )
+		return ERROR;
+
+	if ( dir_record.TypeVal != TYPEVAL_REGULAR )
+		return ERROR;
+
+	open_directories[dir_handle].record = dir_record;
+	open_directories[dir_handle].current_pointer = POINTER_START_POSITION;
+
+	return dir_handle;
 }
 
 /*-----------------------------------------------------------------------------
@@ -193,15 +205,20 @@ Função:	Função usada para ler as entradas de um diretório.
 -----------------------------------------------------------------------------*/
 int readdir2 (DIR2 handle, DIRENT2 *dentry)
 {
+	initialize_file_system();
+
     return -1;
 }
 
-/*-----------------------------------------------------------------------------
-Função:	Função usada para fechar um diretório.
------------------------------------------------------------------------------*/
 int closedir2 (DIR2 handle)
 {
-    return -1;
+	initialize_file_system();
+
+	if ( verify_dir_handle( handle ) == false )
+		return ERROR;
+	
+    open_directories[handle].record.TypeVal = TYPEVAL_INVALIDO;
+	open_directories[handle].record.inodeNumber = INVALID_POINTER;
 }
 
 /*-----------------------------------------------------------------------------
@@ -209,6 +226,8 @@ Função:	Função usada para criar um caminho alternativo (softlink)
 -----------------------------------------------------------------------------*/
 int sln2 (char *linkname, char *filename)
 {
+	initialize_file_system();
+
     return -1;
 }
 
@@ -217,5 +236,7 @@ Função:	Função usada para criar um caminho alternativo (hardlink)
 -----------------------------------------------------------------------------*/
 int hln2(char *linkname, char *filename)
 {
+	initialize_file_system();
+
     return -1;
 }

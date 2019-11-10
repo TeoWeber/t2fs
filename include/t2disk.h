@@ -1,5 +1,3 @@
-
-
 #ifndef __T2DSIK___
 #define __T2DSIK___
 
@@ -11,11 +9,6 @@ typedef int boolean;
 typedef unsigned char       BYTE;
 typedef unsigned short int  WORD;
 typedef unsigned int        DWORD;
-
-#define	TYPEVAL_INVALIDO	0x00
-#define	TYPEVAL_REGULAR		0x01
-#define	TYPEVAL_LINK		0x02
-
 
 #pragma pack(push, 1)
 
