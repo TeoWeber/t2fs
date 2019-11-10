@@ -8,8 +8,8 @@
 | int mount (int partition) | Fred | Prov. Não |
 | int umount (void) | Fred | Prov. Não |
 | int identify2 (char *name, int size) | Fred | Prov. Sim |
-| FILE2 create2 (char *filename) | ? | Não |
-| int delete2 (char *name) | ? | Não |
+| FILE2 create2 (char *filename) | Teo | Não |
+| int delete2 (char *name) | Teo | Não |
 | FILE2 open2 (char *name) | Fred | Não |
 | int close2 (FILE2 handle) | Fred | Prov. Não |
 | int read2 (FILE2 handle, char *buffer, int size) | ? | Não |
