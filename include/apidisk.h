@@ -1,4 +1,3 @@
-
 /*************************************************************************
 
 	Funções que realizam a leitura e escrita do subsistema de E/S no disco usado pelo T2FS

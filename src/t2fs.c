@@ -1,11 +1,14 @@
-#include "t2fs.h"
+#include "../include/t2fs.h"
 
-
-int identify2 (char *name, int size)
+int identify2(char *name, int size)
 {
-    char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Define texto informativo a ser exibidio
-    strncpy(name, grupo, size); // Transfere o texto informativo a ser exibido, para o atributo que será utilizado na exibição
-    return SUCCESS;
+	initialize_file_system();
+
+	char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Define texto informativo a ser exibidio
+
+	strncpy(name, grupo, size); // Transfere o texto informativo a ser exibido, para o atributo que será utilizado na exibição
+
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -17,29 +20,46 @@ int format2(int partition, int sectors_per_block)
 {
 	initialize_file_system();
 
-	char buffer[SECTOR_SIZE]; // Buffer para armazenar conteúdo (setor) a ser usado em leituras e escritas de setores
-
-	if (partition_boot_sectors[partition] == UNDEFINED_BOOT_SECTOR) // A partição ainda não teve o seu endereço inicial guardado
-	{
-		if (read_sector(0, buffer) != SUCCESS) // Falha ao ler o MBR
-			return ERROR;
-
-		partition_boot_sectors[partition] = // Guarda o endereço do primeiro setor da partição a ser formatada
-		 (uint)buffer[8 + 32 * partition + 3] >> 8*3 &
-		  (uint)buffer[8 + 32 * partition + 2] >> 8*2 &
-		   (uint)buffer[8 + 32 * partition + 1] >> 8*1 &
-		    (uint)buffer[8 + 32 * partition + 0] >> 8*0;
-	}
-
-	/* 
-	buffer = SUPERBLOCO; // Armazena no buffer o superbloco a ser escrito no primeiro setor da partição a ser formata
-	*/
-
-	if (read_sector(partition_boot_sectors[partition], buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
+	if (partition >= MAX_PARTITIONS) // Índice de partição a ser formatada é maior que o índice da última partição (ou seja, índice inválido)
 		return ERROR;
-	
+	if (partition < 0) // Índice da partição a ser formatada é menor que o índice da primeira partição (ou seja, índice inválido)
+		return ERROR;
+	if (sectors_per_block > partition_size_in_number_of_sectors[partition])
+		return ERROR;
+	if (sectors_per_block <= 0)
+		return ERROR;
+	if (partition == mounted_partition)
+		unmount(partition);
+
+	strcopy(super_blocks[partition].id, "T2FS");
+	super_blocks[partition].version = (WORD)0x7E32;
+	super_blocks[partition].superblockSize = (WORD)1;
+
+	super_blocks[partition].blockSize = (WORD)sectors_per_block;
+	super_blocks[partition].diskSize = (DWORD)(partition_size_in_number_of_sectors[partition] / sectors_per_block);
+
+	super_blocks[partition].inodeAreaSize = (WORD)1 +
+											(WORD)((super_blocks[partition].diskSize - (DWORD)1) / (DWORD)10);
+	super_blocks[partition].freeInodeBitmapSize = (WORD)1 +
+												  ((super_blocks[partition].inodeAreaSize - (WORD)1) / (WORD)(8 * sizeof(iNode)));
+
+	DWORD remainingBlocks = super_blocks[partition].diskSize -
+							(DWORD)1 -
+							super_blocks[partition].inodeAreaSize -
+							super_blocks[partition].freeInodeBitmapSize;
+	super_blocks[partition].freeBlocksBitmapSize = (WORD)1 +
+												   (WORD)((remainingBlocks - (DWORD)1) / (DWORD)(8 * SECTOR_SIZE + 1));
+
+	super_blocks[partition].Checksum = checksum(partition);
+
+	char buffer[SECTOR_SIZE];
+	memcpy(buffer, &super_blocks[partition], SECTOR_SIZE);
+
+	if (write_sector(partition_boot_sectors[partition], buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
+		return ERROR;
+
 	is_partition_formatted[partition] = PARTITION_FORMATTED; // Define a partição formatada como formatada
-    return SUCCESS;
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -47,17 +67,19 @@ Função:	Monta a partição indicada por "partition" no diretório raiz
 -----------------------------------------------------------------------------*/
 int mount(int partition)
 {
-	if ( partition >= MAX_PARTITIONS)  // Índice de partição a ser montada é maior que o índice da última partição (ou seja, índice inválido)
+	initialize_file_system();
+
+	if (partition >= MAX_PARTITIONS) // Índice de partição a ser montada é maior que o índice da última partição (ou seja, índice inválido)
 		return ERROR;
-	if ( partition < 0 ) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
+	if (partition < 0) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
-	if ( mounted_partition != NO_MOUNTED_PARTITION ) // Já existe uma partição montada
+	if (mounted_partition != NO_MOUNTED_PARTITION) // Já existe uma partição montada
 		return ERROR;
-	if ( !is_partition_formatted[partition] ) // A partição a ser montada não foi formatada
+	if (!is_partition_formatted[partition]) // A partição a ser montada não foi formatada
 		return ERROR;
-	
+
 	mounted_partition = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
-    return SUCCESS;
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -65,11 +87,13 @@ Função:	Desmonta a partição atualmente montada, liberando o ponto de montage
 -----------------------------------------------------------------------------*/
 int unmount(void)
 {
-	if ( mounted_partition == NO_MOUNTED_PARTITION )
+	initialize_file_system();
+
+	if (mounted_partition == NO_MOUNTED_PARTITION)
 		return ERROR;
-	
+
 	mounted_partition = NO_MOUNTED_PARTITION;
-    return SUCCESS;
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -79,28 +103,34 @@ Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 		arquivo já existente, o mesmo terá seu conteúdo removido e
 		assumirá um tamanho de zero bytes.
 -----------------------------------------------------------------------------*/
-FILE2 create2 (char *filename)
+FILE2 create2(char *filename)
 {
-    return -1;
+	initialize_file_system();
+
+	return -1;
 }
 
 /*-----------------------------------------------------------------------------
 Função:	Função usada para remover (apagar) um arquivo do disco.
 -----------------------------------------------------------------------------*/
-int delete2 (char *filename)
+int delete2(char *filename)
 {
-    return -1;
+	initialize_file_system();
+
+	return -1;
 }
 
 /*-----------------------------------------------------------------------------
 Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
-FILE2 open2 (char *filename)
+FILE2 open2(char *filename)
 {
+	initialize_file_system();
+
 	// encontra um handle disponível para abrir o arquivo
-	for ( int handle = 0; handle < MAX_OPEN_FILES; handle++ ) 
+	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
 	{
-		if ( open_file_inodes[handle] != FILE_HANDLE_UNUSED )
+		if (open_file_inodes[handle] != FILE_HANDLE_UNUSED)
 		{
 			/*
 			open_file_inodes[handle] = INODE_NUMBER; // Armazena o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
@@ -113,40 +143,42 @@ FILE2 open2 (char *filename)
 	return ERROR;
 }
 
-int close2 (FILE2 handle)
+int close2(FILE2 handle)
 {
-	if ( verify_file_handle( handle ) == false )
+	initialize_file_system();
+
+	if (verify_file_handle(handle) == false)
 		return ERROR;
 
-	open_file_inodes[handle] = FILE_HANDLE_UNUSED;  // Libera o handle do arquivo fechado
-    return SUCCESS;
+	open_file_inodes[handle] = FILE_HANDLE_UNUSED; // Libera o handle do arquivo fechado
+	return SUCCESS;
 }
 
-int read2 (FILE2 handle, char *buffer, int size)
+int read2(FILE2 handle, char *buffer, int size)
 {
 	initialize_file_system();
 
 	// verifica se o arquivo está aberto
-	if ( verify_file_handle( handle ) == false )
+	if (verify_file_handle(handle) == false)
 		return ERROR;
 
 	OpenFile file = open_files[handle];
 	FileRecord file_record = file.record;
 
 	iNode file_inode;
-	if ( retrieve_inode( file_record.inodeNumber, &file_inode ) == ERROR )
+	if (retrieve_inode(file_record.inodeNumber, &file_inode) == ERROR)
 		return ERROR;
 
 	// verifica eof
-	if ( file.current_pointer >= file_inode.bytesFileSize )
+	if (file.current_pointer >= file_inode.bytesFileSize)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if ( size > file_inode.bytesFileSize - file.current_pointer )
+	if (size > file_inode.bytesFileSize - file.current_pointer)
 		size = file_inode.bytesFileSize - file.current_pointer;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if ( read_n_bytes_from_file( file.current_pointer, size, file_inode, buffer ) == ERROR )
+	if (read_n_bytes_from_file(file.current_pointer, size, file_inode, buffer) == ERROR)
 		return ERROR;
 
 	file.current_pointer += size;
@@ -155,43 +187,43 @@ int read2 (FILE2 handle, char *buffer, int size)
 	return size;
 }
 
-int write2 (FILE2 handle, char *buffer, int size)
+int write2(FILE2 handle, char *buffer, int size)
 {
 	initialize_file_system();
 
-	if ( verify_file_handle( handle ) == false )
+	if (verify_file_handle(handle) == false)
 		return ERROR;
 
 	OpenFile file = open_files[handle];
 	FileRecord file_record = file.record;
 
 	iNode file_inode;
-	if ( retrieve_inode( file_record.inodeNumber, &file_inode ) == ERROR )
+	if (retrieve_inode(file_record.inodeNumber, &file_inode) == ERROR)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file( file.current_pointer, size, file_inode, buffer );
-	if ( bytes_written == ERROR )
+	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, file_inode, buffer);
+	if (bytes_written == ERROR)
 		return ERROR;
 
-    file.current_pointer += bytes_written;
+	file.current_pointer += bytes_written;
 	open_files[handle] = file;
-	
+
 	return bytes_written;
 }
 
-DIR2 opendir2 (char *pathname)
+DIR2 opendir2(char *pathname)
 {
 	initialize_file_system();
 
 	DIR2 dir_handle = retrieve_free_dir_handle();
-	if ( dir_handle == INVALID_HANDLE )
+	if (dir_handle == INVALID_HANDLE)
 		return ERROR;
 
-    FileRecord dir_record;
-	if ( retrieve_dir_record( pathname, &dir_record == ERROR ) )
+	FileRecord dir_record;
+	if (retrieve_dir_record(pathname, &dir_record == ERROR))
 		return ERROR;
 
-	if ( dir_record.TypeVal != TYPEVAL_REGULAR )
+	if (dir_record.TypeVal != TYPEVAL_REGULAR)
 		return ERROR;
 
 	open_directories[dir_handle].record = dir_record;
@@ -203,32 +235,32 @@ DIR2 opendir2 (char *pathname)
 /*-----------------------------------------------------------------------------
 Função:	Função usada para ler as entradas de um diretório.
 -----------------------------------------------------------------------------*/
-int readdir2 (DIR2 handle, DIRENT2 *dentry)
+int readdir2(DIR2 handle, DIRENT2 *dentry)
 {
 	initialize_file_system();
 
-    return -1;
+	return -1;
 }
 
-int closedir2 (DIR2 handle)
+int closedir2(DIR2 handle)
 {
 	initialize_file_system();
 
-	if ( verify_dir_handle( handle ) == false )
+	if (verify_dir_handle(handle) == false)
 		return ERROR;
-	
-    open_directories[handle].record.TypeVal = TYPEVAL_INVALIDO;
+
+	open_directories[handle].record.TypeVal = TYPEVAL_INVALIDO;
 	open_directories[handle].record.inodeNumber = INVALID_POINTER;
 }
 
 /*-----------------------------------------------------------------------------
 Função:	Função usada para criar um caminho alternativo (softlink)
 -----------------------------------------------------------------------------*/
-int sln2 (char *linkname, char *filename)
+int sln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-    return -1;
+	return -1;
 }
 
 /*-----------------------------------------------------------------------------
@@ -238,5 +270,5 @@ int hln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-    return -1;
+	return -1;
 }
