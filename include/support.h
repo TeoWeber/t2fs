@@ -8,8 +8,9 @@
 
 // constantes de arquivos
 #define MAX_OPEN_FILES 10
-#define FILE_HANDLE_UNUSED 0
 #define POINTER_START_POSITION 0
+#define FILE_HANDLE_USED true
+#define FILE_HANDLE_UNUSED false
 
 #define INVALID_POINTER -1
 #define INVALID_HANDLE -1
@@ -40,48 +41,56 @@ typedef struct t_mbr
 {
     WORD version;
     WORD sectorSize;
-    WORD initialByteOfPartitionTable;
+    WORD InitialByteOfPartitionTable;
     WORD numberOfPartitions;
 
-    DWORD partition0InitialSector;
+    DWORD partition0BootSector;
     DWORD partition0FinalSector;
     BYTE partition0Name[24];
 
-    DWORD partition1InitialSector;
+    DWORD partition1BootSector;
     DWORD partition1FinalSector;
     BYTE partition1Name[24];
 
-    DWORD partition2InitialSector;
+    DWORD partition2BootSector;
     DWORD partition2FinalSector;
     BYTE partition2Name[24];
 
-    DWORD partition3InitialSector;
+    DWORD partition3BootSector;
     DWORD partition3FinalSector;
     BYTE partition3Name[24];
 
 } MBR;
 
+typedef struct t_partition
+{
+    boolean is_formatted;
+    DWORD boot_sector;
+    DWORD final_sector;
+    DWORD size_in_sectors;
+    SuperBlock super_block;
+} Partition;
+
 typedef struct t_open_file
 {
+    boolean handle_used;
+    DWORD inode_number;
     FileRecord record;
     DWORD current_pointer;
 } OpenFile;
 
 boolean file_system_initialized = false;
+
 MBR mbr;
-SuperBlock super_blocks[MAX_PARTITIONS];
 
-boolean is_partition_formatted[MAX_PARTITIONS] = {PARTITION_UNFORMATTED};
+Partition partitions[MAX_PARTITIONS];
+
 int mounted_partition = NO_MOUNTED_PARTITION;
-DWORD partition_boot_sectors[MAX_PARTITIONS];
-DWORD partition_size_in_number_of_sectors[MAX_PARTITIONS];
-
-DWORD open_file_inodes[MAX_OPEN_FILES];
-DWORD open_dir_inodes[MAX_OPEN_DIRS];
-DWORD open_file_pointer_positions[MAX_OPEN_FILES];
 
 OpenFile open_files[MAX_OPEN_FILES];
-OpenFile open_directories[MAX_OPEN_DIRS];
+
+DWORD open_dir_inodes[MAX_OPEN_DIRS];     // Deve continuar existindo? (único diretório é a raiz)
+OpenFile open_directories[MAX_OPEN_DIRS]; // Deve continuar existindo? (único diretório é a raiz)
 
 void initialize_file_system();
 
