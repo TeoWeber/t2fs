@@ -55,7 +55,7 @@ int format2(int partition, int sectors_per_block)
 	char buffer[SECTOR_SIZE];
 	memcpy(buffer, &partitions[partition].super_block, SECTOR_SIZE);
 
-	if (write_sector(partitions[partition].boot_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no primeiro setor da partição a ser formata (ou seja, formata ela)
+	if (write_sector(partitions[partition].boot_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no buffer, no primeiro setor da partição a ser formatada
 		return ERROR;
 
 	partitions[partition].is_formatted = PARTITION_FORMATTED; // Define a partição formatada como formatada
