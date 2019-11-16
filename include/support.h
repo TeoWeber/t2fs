@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
