@@ -83,7 +83,7 @@ MBR mbr;
 
 Partition partitions[MAX_PARTITIONS];
 
-int mounted_partition = NO_MOUNTED_PARTITION;
+int mounted_partition_index = NO_MOUNTED_PARTITION;
 
 OpenFile open_files[MAX_OPEN_FILES];
 
