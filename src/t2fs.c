@@ -28,7 +28,7 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 	if (sectors_per_block <= 0)
 		return ERROR;
-	if (partition == mounted_partition)
+	if (partition == mounted_partition_index)
 		unmount(partition);
 
 	strcopy(partitions[partition].super_block.id, "T2FS");
@@ -73,12 +73,12 @@ int mount(int partition)
 		return ERROR;
 	if (partition < 0) // Índice da partição a ser montada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
-	if (mounted_partition != NO_MOUNTED_PARTITION) // Já existe uma partição montada
+	if (mounted_partition_index != NO_MOUNTED_PARTITION) // Já existe uma partição montada
 		return ERROR;
 	if (!partitions[partition].is_formatted) // A partição a ser montada não foi formatada
 		return ERROR;
 
-	mounted_partition = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
+	mounted_partition_index = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
 	return SUCCESS;
 }
 
@@ -89,10 +89,15 @@ int unmount(void)
 {
 	initialize_file_system();
 
-	if (mounted_partition == NO_MOUNTED_PARTITION)
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
-	mounted_partition = NO_MOUNTED_PARTITION;
+	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
+	{
+		open_files[handle].handle_used = FILE_HANDLE_UNUSED;
+	}
+
+	mounted_partition_index = NO_MOUNTED_PARTITION;
 	return SUCCESS;
 }
 

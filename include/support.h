@@ -10,12 +10,12 @@
 #define FILE_HANDLE_USED true
 #define FILE_HANDLE_UNUSED false
 
-#define INVALID_POINTER -1
+#define INVALID_POINTER -1 // Deve continuar existindo? (não utilizado)
 #define INVALID_HANDLE -1
 
 // constantes de diretórios
-#define MAX_OPEN_DIRS 10
-#define DIR_HANDLE_UNUSED 0
+#define MAX_OPEN_DIRS 10    // Deve continuar existindo? (único diretório é a raiz)
+#define DIR_HANDLE_UNUSED 0 // Deve continuar existindo? (único diretório é a raiz)
 
 // constantes de partições
 #define MAX_PARTITIONS 4
