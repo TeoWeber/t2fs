@@ -4,6 +4,7 @@
 
 // constante de de inodes
 #define POINTER_UNUSED (DWORD)0
+#define INVALID_INODE_POINTER (iNode *)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
@@ -102,13 +103,13 @@ int format_root_dir(int partition);
 
 DWORD checksum(int partition);
 
-Record *get_record_pointer_from_file_given_filename(char *filename);
-
 boolean is_a_handle_used(FILE2 handle);
 
-FILE2 retrieve_free_handle();
+Record *get_record_pointer_from_file_given_filename(char *filename);
 
-int retrieve_inode(DWORD inode_number, iNode *inode);
+FILE2 get_first_unused_handle();
+
+iNode *get_inode_pointer_given_inode_number(DWORD inode_number);
 
 int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer);
 

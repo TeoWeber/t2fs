@@ -145,6 +145,17 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
+boolean is_a_handle_used(FILE2 handle)
+{
+    if (handle < 0 || handle >= MAX_OPEN_FILES)
+        return false;
+
+    if (open_files[handle].handle_used == HANDLE_UNUSED)
+        return false;
+
+    return true;
+}
+
 Record *get_record_pointer_from_file_given_filename(char *filename)
 {
     // Salvamos contexto do root dir (aberto/fechado) (entrada apontada)
@@ -182,18 +193,7 @@ Record *get_record_pointer_from_file_given_filename(char *filename)
     // FUNÇÃO NÃO FINALIZADA
 }
 
-boolean is_a_handle_used(FILE2 handle)
-{
-    if (handle < 0 || handle >= MAX_OPEN_FILES)
-        return false;
-
-    if (open_files[handle].handle_used == HANDLE_UNUSED)
-        return false;
-
-    return true;
-}
-
-FILE2 retrieve_free_handle()
+FILE2 get_first_unused_handle()
 {
     FILE2 handle;
     for (handle = 0; handle < MAX_OPEN_FILES; handle++)
@@ -205,8 +205,9 @@ FILE2 retrieve_free_handle()
     return INVALID_HANDLE;
 }
 
-int retrieve_inode(DWORD inode_number, iNode *inode)
+iNode *get_inode_pointer_given_inode_number(DWORD inode_number)
 {
+    return INVALID_INODE_POINTER;
 }
 
 int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer)

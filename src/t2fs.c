@@ -123,7 +123,7 @@ FILE2 open2(char *filename)
 		return ERROR;
 
 	FILE2 handle;
-	if ((handle = retrieve_free_handle()) == INVALID_HANDLE)
+	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return ERROR;
 
 	Record *record_pointer;
@@ -162,20 +162,20 @@ int read2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	iNode inode;
-	if (retrieve_inode(record.inodeNumber, &inode) == ERROR)
+	iNode *inode;
+	if ((inode = get_inode_pointer_given_inode_number(record.inodeNumber)) == INVALID_INODE_POINTER)
 		return ERROR;
 
 	// verifica eof
-	if (file.current_pointer >= inode.bytesFileSize)
+	if (file.current_pointer >= inode->bytesFileSize)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if (size > inode.bytesFileSize - file.current_pointer)
-		size = inode.bytesFileSize - file.current_pointer;
+	if (size > inode->bytesFileSize - file.current_pointer)
+		size = inode->bytesFileSize - file.current_pointer;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if (read_n_bytes_from_file(file.current_pointer, size, inode, buffer) == ERROR)
+	if (read_n_bytes_from_file(file.current_pointer, size, *inode, buffer) == ERROR)
 		return ERROR;
 
 	file.current_pointer += size;
@@ -194,11 +194,11 @@ int write2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	iNode inode;
-	if (retrieve_inode(record.inodeNumber, &inode) == ERROR)
+	iNode *inode;
+	if ((inode = get_inode_pointer_given_inode_number(record.inodeNumber)) == INVALID_INODE_POINTER)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, inode, buffer);
+	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, *inode, buffer);
 	if (bytes_written == ERROR)
 		return ERROR;
 
