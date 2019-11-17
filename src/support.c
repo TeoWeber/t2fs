@@ -50,12 +50,12 @@ void initialize_file_system()
 
 int fill_partition_structure(int partition, int sectors_per_block)
 {
-	if (sectors_per_block <= 0) // Tamanho de bloco inválido
-		return ERROR;
+    if (sectors_per_block <= 0) // Tamanho de bloco inválido
+        return ERROR;
     if (sectors_per_block > 65535) // Overflow em futuro (WORD) casting
         return ERROR;
-	if (sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
-		return ERROR;
+    if (sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
+        return ERROR;
 
     strcopy(partitions[partition].super_block.id, "T2FS");
 
@@ -71,7 +71,7 @@ int fill_partition_structure(int partition, int sectors_per_block)
 
     // Deveríamos testar se a seguinte operação não dá casting overflow.
     // Mas dado o tamanho do disco (1MB), isso não tem como ocorrer se o MBR estiver corretamente preenchido.
-    partitions[partition].super_block.inodeAreaSize = (WORD)((remainingBlocks + (DWORD)(10 - 1)) / 
+    partitions[partition].super_block.inodeAreaSize = (WORD)((remainingBlocks + (DWORD)(10 - 1)) /
                                                              (DWORD)10);
     remainingBlocks -= (DWORD)partitions[partition].super_block.inodeAreaSize;
 
@@ -117,14 +117,11 @@ int reset_bitmaps(int partition)
 
 DWORD checksum(int partition) // Verificar se está funcionando
 {
-    unsigned long long int gross_checksum = ((DWORD *)&(partitions[partition].super_block))[0] +
-                                            ((DWORD *)&(partitions[partition].super_block))[1] +
-                                            ((DWORD *)&(partitions[partition].super_block))[2] +
-                                            ((DWORD *)&(partitions[partition].super_block))[3] +
-                                            ((DWORD *)&(partitions[partition].super_block))[4];
-
-    DWORD checksum = ~((DWORD)gross_checksum + (DWORD)(gross_checksum >> 32));
-
+    DWORD checksum = ~(((DWORD *)&(partitions[partition].super_block))[0] +
+                       ((DWORD *)&(partitions[partition].super_block))[1] +
+                       ((DWORD *)&(partitions[partition].super_block))[2] +
+                       ((DWORD *)&(partitions[partition].super_block))[3] +
+                       ((DWORD *)&(partitions[partition].super_block))[4]);
     return checksum;
 }
 
