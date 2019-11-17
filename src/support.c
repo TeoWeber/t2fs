@@ -107,6 +107,17 @@ int reset_bitmaps(int partition)
     return SUCCESS;
 }
 
+void define_empty_inode_from_inode_pointer(iNode *inode_pointer)
+{
+    inode_pointer->blocksFileSize = (DWORD)0;
+    inode_pointer->bytesFileSize = (DWORD)0;
+    inode_pointer->dataPtr[0] = (DWORD)0;
+    inode_pointer->dataPtr[1] = (DWORD)0;
+    inode_pointer->singleIndPtr = (DWORD)0;
+    inode_pointer->doubleIndPtr = (DWORD)0;
+    inode_pointer->RefCounter = (DWORD)0;
+}
+
 int format_root_dir(int partition)
 {
     if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
@@ -114,12 +125,12 @@ int format_root_dir(int partition)
 
     setBitmap2(BITMAP_INODE, 0, 1); // Inode da raiz está ocupado
 
-    // RESERVAR BLOCOS LIVRES PARA A RAIZ SE NECESSÁRIO
-
     if (closeBitmap2() != SUCCESS)
         return ERROR;
 
-    // FORMATAR INODE DA RAIZ
+    iNode inode;
+
+    define_empty_inode_from_inode_pointer(&inode);
 
     return SUCCESS;
 }
@@ -134,7 +145,7 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
-DWORD inode_of_file_by_filename(char *filename)
+DWORD get_inode_of_file_using_filename(char *filename)
 {
 
 }

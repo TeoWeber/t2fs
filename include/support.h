@@ -2,9 +2,11 @@
 #include "bitmap2.h"
 #include "t2disk.h"
 
-#define MAX_FILE_NAME_SIZE 255
+// constante de inodes
+#define POINTER_UNUSED 0
 
 // constantes de arquivos
+#define MAX_FILE_NAME_SIZE 255
 #define MAX_OPEN_FILES 10
 #define POINTER_START_POSITION 0
 #define HANDLE_USED true
@@ -21,6 +23,7 @@
 #define SUCCESS 0
 #define ERROR -1
 
+// tipos de arquivos
 #define TYPEVAL_INVALIDO 0x00
 #define TYPEVAL_REGULAR 0x01
 #define TYPEVAL_LINK 0x02
@@ -93,11 +96,13 @@ int fill_partition_structure(int partition, int sectors_per_block);
 
 int reset_bitmaps(int partition);
 
+void define_empty_inode_from_inode_pointer(iNode *inode_pointer);
+
 int format_root_dir(int partition);
 
 DWORD checksum(int partition);
 
-DWORD inode_of_file_by_filename(char *filename);
+DWORD get_inode_of_file_using_filename(char *filename);
 
 boolean is_a_handle_used(FILE2 handle);
 

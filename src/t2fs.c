@@ -37,7 +37,7 @@ int format2(int partition, int sectors_per_block)
 	if (reset_bitmaps(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
 		return ERROR;
 
-	if (format_root_dir(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
+	if (format_root_dir(partition) != SUCCESS) // Formatamos o inode do diretório raiz da partição
 		return ERROR;
 
 	partitions[partition].is_formatted = PARTITION_FORMATTED; // Definimos a partição formatada como formatada
