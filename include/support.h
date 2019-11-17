@@ -4,7 +4,6 @@
 
 // constante de de inodes
 #define POINTER_UNUSED (DWORD)0
-#define INVALID_INODE_NUMBER (DWORD)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
@@ -13,6 +12,7 @@
 #define HANDLE_USED true
 #define HANDLE_UNUSED false
 #define INVALID_HANDLE (FILE2)-1
+#define INVALID_RECORD_POINTER (Record *)0
 
 // constantes de partições
 #define MAX_PARTITIONS 4
@@ -72,7 +72,6 @@ typedef struct t_partition
 typedef struct t_open_file
 {
     boolean handle_used;
-    DWORD inode_number;
     Record record;
     DWORD current_pointer;
 } OpenFile;
@@ -103,7 +102,7 @@ int format_root_dir(int partition);
 
 DWORD checksum(int partition);
 
-DWORD get_inode_number_from_file_using_filename(char *filename);
+Record *get_record_pointer_from_file_given_filename(char *filename);
 
 boolean is_a_handle_used(FILE2 handle);
 
@@ -115,4 +114,4 @@ int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer);
 
 int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer);
 
-int retrieve_dir_record(char *path, Record *record);
+int strcmp (const char *s1, const char *s2);

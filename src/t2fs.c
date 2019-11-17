@@ -126,13 +126,15 @@ FILE2 open2(char *filename)
 	if ((handle = retrieve_free_handle()) == INVALID_HANDLE)
 		return ERROR;
 
-	DWORD inode_number;
-	if (inode_number = get_inode_number_from_file_using_filename(filename) == INVALID_INODE_NUMBER)
+	Record *record_pointer;
+	if (record_pointer = get_record_pointer_from_file_given_filename(filename) == INVALID_RECORD_POINTER)
 		return ERROR;
 	
-	open_files[handle].inode_number = inode_number;
+	open_files[handle].record = *record_pointer;
 
 	open_files[handle].current_pointer = POINTER_START_POSITION;
+
+	open_files[handle].handle_used = HANDLE_USED; // Alocamos o handle do arquivo aberto
 
 	return handle;
 }

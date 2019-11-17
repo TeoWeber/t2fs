@@ -145,9 +145,41 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
-DWORD get_inode_number_from_file_using_filename(char *filename)
+Record *get_record_pointer_from_file_given_filename(char *filename)
 {
-    return INVALID_INODE_NUMBER;
+    // Salvamos contexto do root dir (aberto/fechado) (entrada apontada)
+    boolean was_the_root_dir_open = is_the_root_dir_open;
+    int root_dir_entry_late_pointer = root_dir_entry_current_pointer;
+
+    // Abrimos root dir em sua primeira entrada
+    is_the_root_dir_open = true;
+    root_dir_entry_current_pointer = 0;
+
+    // Percorremos todas entradas em busca de uma entrada com nome == filename
+    boolean hitFlag = false;
+    DIRENT2 dentry;
+    while (readdir2(&dentry) == SUCCESS)
+    {
+        if (strcmp(dentry.name, filename) == 0) // Se as strings são iguais strcmp retorna 0
+        {
+            hitFlag = true;
+            break;
+        }
+    }
+
+    // Restauramos contexto do root dir (aberto/fechado) (entrada apontada)
+    is_the_root_dir_open = was_the_root_dir_open;
+    root_dir_entry_current_pointer = root_dir_entry_late_pointer;
+
+    // Se não encontrou nenhuma entrada na busca anterior, retornamos falha
+    if (!hitFlag)
+        return INVALID_RECORD_POINTER;
+
+    // Se o tipo da entrada não for válido, retornamos falha
+    if (dentry.fileType != TYPEVAL_REGULAR && dentry.fileType != TYPEVAL_LINK)
+        return INVALID_RECORD_POINTER;
+
+    // FUNÇÃO NÃO FINALIZADA
 }
 
 boolean is_a_handle_used(FILE2 handle)
@@ -183,4 +215,28 @@ int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer)
 
 int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer)
 {
+}
+
+int strcmp(const char *s1, const char *s2)
+{
+    const unsigned char *p1 = (const unsigned char *)s1;
+    const unsigned char *p2 = (const unsigned char *)s2;
+
+    while (*p1 != '\0')
+    {
+        if (*p2 == '\0')
+            return 1;
+        if (*p2 > *p1)
+            return -1;
+        if (*p1 > *p2)
+            return 1;
+
+        p1++;
+        p2++;
+    }
+
+    if (*p2 != '\0')
+        return -1;
+
+    return 0;
 }
