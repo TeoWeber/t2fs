@@ -5,6 +5,10 @@ void initialize_file_system()
     if (file_system_initialized)
         return;
 
+    mounted_partition_index = NO_MOUNTED_PARTITION;
+
+    is_the_root_dir_open = false;
+
     // Inicializa o mbr
     read_sector(0, (BYTE *)&mbr);
 
@@ -26,23 +30,11 @@ void initialize_file_system()
     partitions[2].size_in_sectors = partitions[2].final_sector - partitions[2].boot_sector + (DWORD)1;
     partitions[3].size_in_sectors = partitions[3].final_sector - partitions[3].boot_sector + (DWORD)1;
 
-    // Inicializa arquivos abertos
+    // Inicializa os campos necessários dos arquivos abertos
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++)
     {
-        open_files[i].handle_used = FILE_HANDLE_UNUSED;
-        open_files[i].current_pointer = POINTER_START_POSITION;
-        open_files[i].record.inodeNumber = INVALID_POINTER;
-        open_files[i].record.TypeVal = TYPEVAL_INVALIDO;
-    }
-
-    // Inicializa diretórios abertos
-    for (i = 0; i < MAX_OPEN_DIRS; i++)
-    {
-        open_dir_inodes[i] = DIR_HANDLE_UNUSED;
-        open_directories[i].current_pointer = POINTER_START_POSITION;
-        open_directories[i].record.inodeNumber = INVALID_POINTER;
-        open_directories[i].record.TypeVal = TYPEVAL_INVALIDO;
+        open_files[i].handle_used = HANDLE_UNUSED;
     }
 
     file_system_initialized = true;
@@ -99,18 +91,35 @@ int reset_bitmaps(int partition)
     if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
         return ERROR;
 
-    for (int i = 1; i <= partitions[partition].number_of_inodes; i++)
+    for (int i = 0; i < partitions[partition].number_of_inodes; i++)
     {
         setBitmap2(BITMAP_INODE, i, 0);
     }
 
-    for (int i = 1; i <= partitions[partition].number_of_data_blocks; i++)
+    for (int i = 0; i < partitions[partition].number_of_data_blocks; i++)
     {
         setBitmap2(BITMAP_DADOS, i, 0);
     }
 
     if (closeBitmap2() != SUCCESS)
         return ERROR;
+
+    return SUCCESS;
+}
+
+int format_root_dir(int partition)
+{
+    if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
+        return ERROR;
+
+    setBitmap2(BITMAP_INODE, 0, 1); // Inode da raiz está ocupado
+
+    // RESERVAR BLOCOS LIVRES PARA A RAIZ SE NECESSÁRIO
+
+    if (closeBitmap2() != SUCCESS)
+        return ERROR;
+
+    // FORMATAR INODE DA RAIZ
 
     return SUCCESS;
 }
@@ -125,46 +134,28 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
-boolean is_a_file_handle_used(FILE2 handle)
+DWORD inode_of_file_by_filename(char *filename)
+{
+
+}
+
+boolean is_a_handle_used(FILE2 handle)
 {
     if (handle < 0 || handle >= MAX_OPEN_FILES)
         return false;
 
-    if (open_files[handle].handle_used == FILE_HANDLE_UNUSED)
+    if (open_files[handle].handle_used == HANDLE_UNUSED)
         return false;
 
     return true;
 }
 
-boolean is_a_dir_handle_used(DIR2 handle)
-{
-    if (handle < 0 || handle >= MAX_OPEN_DIRS)
-        return false;
-
-    if (open_dir_inodes[handle] == DIR_HANDLE_UNUSED)
-        return false;
-
-    return true;
-}
-
-FILE2 retrieve_free_file_handle()
+FILE2 retrieve_free_handle()
 {
     FILE2 handle;
     for (handle = 0; handle < MAX_OPEN_FILES; handle++)
     {
-        if (open_files[handle].handle_used == FILE_HANDLE_UNUSED)
-            return handle;
-    }
-
-    return INVALID_HANDLE;
-}
-
-DIR2 retrieve_free_dir_handle()
-{
-    DIR2 handle;
-    for (handle = 0; handle < MAX_OPEN_DIRS; handle++)
-    {
-        if (open_files[handle].handle_used == DIR_HANDLE_UNUSED)
+        if (open_files[handle].handle_used == HANDLE_UNUSED)
             return handle;
     }
 
@@ -183,7 +174,7 @@ int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer)
 {
 }
 
-int retrieve_dir_record(char *path, FileRecord *record)
+int retrieve_dir_record(char *path, Record *record)
 {
     iNode inode;
     char dir_name[MAX_FILE_NAME_SIZE + 1];

@@ -7,15 +7,9 @@
 // constantes de arquivos
 #define MAX_OPEN_FILES 10
 #define POINTER_START_POSITION 0
-#define FILE_HANDLE_USED true
-#define FILE_HANDLE_UNUSED false
-
-#define INVALID_POINTER -1 // Deve continuar existindo? (não utilizado)
+#define HANDLE_USED true
+#define HANDLE_UNUSED false
 #define INVALID_HANDLE (FILE2)-1
-
-// constantes de diretórios
-#define MAX_OPEN_DIRS 10    // Deve continuar existindo? (único diretório é a raiz)
-#define DIR_HANDLE_UNUSED (DIR2)0 // Deve continuar existindo? (único diretório é a raiz)
 
 // constantes de partições
 #define MAX_PARTITIONS 4
@@ -32,7 +26,7 @@
 #define TYPEVAL_LINK 0x02
 
 typedef struct t2fs_superbloco SuperBlock;
-typedef struct t2fs_record FileRecord;
+typedef struct t2fs_record Record;
 typedef struct t2fs_inode iNode;
 
 typedef struct t_mbr
@@ -75,7 +69,7 @@ typedef struct t_open_file
 {
     boolean handle_used;
     DWORD inode_number;
-    FileRecord record;
+    Record record;
     DWORD current_pointer;
 } OpenFile;
 
@@ -85,12 +79,13 @@ MBR mbr;
 
 Partition partitions[MAX_PARTITIONS];
 
-int mounted_partition_index = NO_MOUNTED_PARTITION;
+int mounted_partition_index;
 
 OpenFile open_files[MAX_OPEN_FILES];
 
-DWORD open_dir_inodes[MAX_OPEN_DIRS];     // Deve continuar existindo? (único diretório é a raiz)
-OpenFile open_directories[MAX_OPEN_DIRS]; // Deve continuar existindo? (único diretório é a raiz)
+boolean is_the_root_dir_open;
+
+int root_dir_entry_current_pointer;
 
 void initialize_file_system();
 
@@ -98,15 +93,15 @@ int fill_partition_structure(int partition, int sectors_per_block);
 
 int reset_bitmaps(int partition);
 
+int format_root_dir(int partition);
+
 DWORD checksum(int partition);
 
-boolean is_a_file_handle_used(FILE2 handle);
+DWORD inode_of_file_by_filename(char *filename);
 
-boolean is_a_dir_handle_used(DIR2 handle);
+boolean is_a_handle_used(FILE2 handle);
 
-FILE2 retrieve_free_file_handle();
-
-DIR2 retrieve_free_dir_handle();
+FILE2 retrieve_free_handle();
 
 int retrieve_inode(DWORD inode_number, iNode *inode);
 
@@ -114,4 +109,4 @@ int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer);
 
 int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer);
 
-int retrieve_dir_record(char *path, FileRecord *record);
+int retrieve_dir_record(char *path, Record *record);

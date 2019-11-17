@@ -37,7 +37,11 @@ int format2(int partition, int sectors_per_block)
 	if (reset_bitmaps(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
 		return ERROR;
 
+	if (format_root_dir(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
+		return ERROR;
+
 	partitions[partition].is_formatted = PARTITION_FORMATTED; // Definimos a partição formatada como formatada
+
 	return SUCCESS;
 }
 
@@ -58,6 +62,7 @@ int mount(int partition)
 		return ERROR;
 
 	mounted_partition_index = partition; // Definimos a partição a ser montada como a partição montada (ou seja, monta ela)
+
 	return SUCCESS;
 }
 
@@ -73,10 +78,13 @@ int unmount(void)
 
 	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
 	{
-		open_files[handle].handle_used = FILE_HANDLE_UNUSED;
+		open_files[handle].handle_used = HANDLE_UNUSED;
 	}
 
+	is_the_root_dir_open = false;
+
 	mounted_partition_index = NO_MOUNTED_PARTITION;
+
 	return SUCCESS;
 }
 
@@ -115,7 +123,7 @@ FILE2 open2(char *filename)
 		return ERROR;
 
 	FILE2 handle;
-	if ((handle = retrieve_free_file_handle()) == INVALID_HANDLE)
+	if ((handle = retrieve_free_handle()) == INVALID_HANDLE)
 		return ERROR;
 
 	/*
@@ -123,6 +131,7 @@ FILE2 open2(char *filename)
 	*/
 
 	open_files[handle].current_pointer = POINTER_START_POSITION;
+
 	return handle;
 }
 
@@ -130,10 +139,11 @@ int close2(FILE2 handle)
 {
 	initialize_file_system();
 
-	if (!is_a_file_handle_used(handle))
+	if (!is_a_handle_used(handle))
 		return ERROR;
 
-	open_files[handle].handle_used = FILE_HANDLE_UNUSED; // Liberamos o handle do arquivo fechado
+	open_files[handle].handle_used = HANDLE_UNUSED; // Liberamos o handle do arquivo fechado
+
 	return SUCCESS;
 }
 
@@ -142,26 +152,26 @@ int read2(FILE2 handle, char *buffer, int size)
 	initialize_file_system();
 
 	// verifica se o arquivo está aberto
-	if (!is_a_file_handle_used(handle))
+	if (!is_a_handle_used(handle))
 		return ERROR;
 
 	OpenFile file = open_files[handle];
-	FileRecord file_record = file.record;
+	Record record = file.record;
 
-	iNode file_inode;
-	if (retrieve_inode(file_record.inodeNumber, &file_inode) == ERROR)
+	iNode inode;
+	if (retrieve_inode(record.inodeNumber, &inode) == ERROR)
 		return ERROR;
 
 	// verifica eof
-	if (file.current_pointer >= file_inode.bytesFileSize)
+	if (file.current_pointer >= inode.bytesFileSize)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if (size > file_inode.bytesFileSize - file.current_pointer)
-		size = file_inode.bytesFileSize - file.current_pointer;
+	if (size > inode.bytesFileSize - file.current_pointer)
+		size = inode.bytesFileSize - file.current_pointer;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if (read_n_bytes_from_file(file.current_pointer, size, file_inode, buffer) == ERROR)
+	if (read_n_bytes_from_file(file.current_pointer, size, inode, buffer) == ERROR)
 		return ERROR;
 
 	file.current_pointer += size;
@@ -174,17 +184,17 @@ int write2(FILE2 handle, char *buffer, int size)
 {
 	initialize_file_system();
 
-	if (!is_a_file_handle_used(handle))
+	if (!is_a_handle_used(handle))
 		return ERROR;
 
 	OpenFile file = open_files[handle];
-	FileRecord file_record = file.record;
+	Record record = file.record;
 
-	iNode file_inode;
-	if (retrieve_inode(file_record.inodeNumber, &file_inode) == ERROR)
+	iNode inode;
+	if (retrieve_inode(record.inodeNumber, &inode) == ERROR)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, file_inode, buffer);
+	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, inode, buffer);
 	if (bytes_written == ERROR)
 		return ERROR;
 
@@ -194,46 +204,48 @@ int write2(FILE2 handle, char *buffer, int size)
 	return bytes_written;
 }
 
-DIR2 opendir2(char *pathname)
+int opendir2(void)
 {
 	initialize_file_system();
-
-	DIR2 dir_handle = retrieve_free_dir_handle();
-	if (dir_handle == INVALID_HANDLE)
+	
+	if (is_the_root_dir_open)
 		return ERROR;
 
-	FileRecord dir_record;
-	if (retrieve_dir_record(pathname, &dir_record == ERROR))
-		return ERROR;
+	is_the_root_dir_open = true;
+	root_dir_entry_current_pointer = 0;
 
-	if (dir_record.TypeVal != TYPEVAL_REGULAR)
-		return ERROR;
-
-	open_directories[dir_handle].record = dir_record;
-	open_directories[dir_handle].current_pointer = POINTER_START_POSITION;
-
-	return dir_handle;
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
 Função:	Função usada para ler as entradas de um diretório.
 -----------------------------------------------------------------------------*/
-int readdir2(DIR2 handle, DIRENT2 *dentry)
+int readdir2(DIRENT2 *dentry)
 {
 	initialize_file_system();
 
-	return -1;
-}
-
-int closedir2(DIR2 handle)
-{
-	initialize_file_system();
-
-	if (!is_a_dir_handle_used(handle))
+	if (!is_the_root_dir_open)
 		return ERROR;
 
-	open_directories[handle].record.TypeVal = TYPEVAL_INVALIDO;
-	open_directories[handle].record.inodeNumber = INVALID_POINTER;
+	// COLOCAR EM dentry OS DADOS DO i-ÉSIMO FILE RECORD DA RAIZ
+	// PRIMEIRO FILE RECORD ESTÁ EM i = 0
+	// i = root_dir_entry_current_pointer
+
+	root_dir_entry_current_pointer++;
+
+	return SUCCESS;
+}
+
+int closedir2(void)
+{
+	initialize_file_system();
+
+	if (!is_the_root_dir_open)
+		return ERROR;
+
+	is_the_root_dir_open = false;
+
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
