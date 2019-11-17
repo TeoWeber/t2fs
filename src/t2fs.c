@@ -114,27 +114,26 @@ FILE2 open2(char *filename)
 {
 	initialize_file_system();
 
-	// Encontramos um handle disponível para abrir o arquivo
-	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
-	{
-		if (open_files[handle].handle_used != FILE_HANDLE_UNUSED)
-		{
-			/*
-			open_file_inodes[handle] = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
-			*/
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
 
-			open_files[handle].current_pointer = POINTER_START_POSITION;
-			return handle;
-		}
-	}
-	return ERROR;
+	FILE2 handle;
+	if ((handle = retrieve_free_file_handle()) == INVALID_HANDLE)
+		return ERROR;
+
+	/*
+	open_file_inodes[handle] = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
+	*/
+
+	open_files[handle].current_pointer = POINTER_START_POSITION;
+	return handle;
 }
 
 int close2(FILE2 handle)
 {
 	initialize_file_system();
 
-	if (verify_file_handle(handle) == false)
+	if (!is_a_file_handle_used(handle))
 		return ERROR;
 
 	open_files[handle].handle_used = FILE_HANDLE_UNUSED; // Liberamos o handle do arquivo fechado
@@ -146,7 +145,7 @@ int read2(FILE2 handle, char *buffer, int size)
 	initialize_file_system();
 
 	// verifica se o arquivo está aberto
-	if (verify_file_handle(handle) == false)
+	if (!is_a_file_handle_used(handle))
 		return ERROR;
 
 	OpenFile file = open_files[handle];
@@ -178,7 +177,7 @@ int write2(FILE2 handle, char *buffer, int size)
 {
 	initialize_file_system();
 
-	if (verify_file_handle(handle) == false)
+	if (!is_a_file_handle_used(handle))
 		return ERROR;
 
 	OpenFile file = open_files[handle];
@@ -233,7 +232,7 @@ int closedir2(DIR2 handle)
 {
 	initialize_file_system();
 
-	if (verify_dir_handle(handle) == false)
+	if (!is_a_dir_handle_used(handle))
 		return ERROR;
 
 	open_directories[handle].record.TypeVal = TYPEVAL_INVALIDO;

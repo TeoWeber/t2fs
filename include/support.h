@@ -11,11 +11,11 @@
 #define FILE_HANDLE_UNUSED false
 
 #define INVALID_POINTER -1 // Deve continuar existindo? (não utilizado)
-#define INVALID_HANDLE -1
+#define INVALID_HANDLE (FILE2)-1
 
 // constantes de diretórios
 #define MAX_OPEN_DIRS 10    // Deve continuar existindo? (único diretório é a raiz)
-#define DIR_HANDLE_UNUSED 0 // Deve continuar existindo? (único diretório é a raiz)
+#define DIR_HANDLE_UNUSED (DIR2)0 // Deve continuar existindo? (único diretório é a raiz)
 
 // constantes de partições
 #define MAX_PARTITIONS 4
@@ -100,9 +100,9 @@ int reset_bitmaps(int partition);
 
 DWORD checksum(int partition);
 
-boolean verify_file_handle(FILE2 handle);
+boolean is_a_file_handle_used(FILE2 handle);
 
-boolean verify_dir_handle(DIR2 handle);
+boolean is_a_dir_handle_used(DIR2 handle);
 
 FILE2 retrieve_free_file_handle();
 

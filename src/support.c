@@ -128,7 +128,7 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
-boolean verify_file_handle(FILE2 handle)
+boolean is_a_file_handle_used(FILE2 handle)
 {
     if (handle < 0 || handle >= MAX_OPEN_FILES)
         return false;
@@ -139,7 +139,7 @@ boolean verify_file_handle(FILE2 handle)
     return true;
 }
 
-boolean verify_dir_handle(DIR2 handle)
+boolean is_a_dir_handle_used(DIR2 handle)
 {
     if (handle < 0 || handle >= MAX_OPEN_DIRS)
         return false;

@@ -11,7 +11,7 @@
 | FILE2 create2 (char *filename) | Teo | Não |
 | int delete2 (char *name) | Teo | Não |
 | FILE2 open2 (char *name) | Fred | Não |
-| int close2 (FILE2 handle) | Fred | Prov. Não |
+| int close2 (FILE2 handle) | Fred | Prov. Sim |
 | int read2 (FILE2 handle, char *buffer, int size) | Julia | Não |
 | int write2 (FILE2 handle, char *buffer, int size) | Julia | Não |
 | int opendir2 (void) | Julia | Não |
