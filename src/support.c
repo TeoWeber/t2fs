@@ -184,11 +184,3 @@ int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer)
 int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer)
 {
 }
-
-int retrieve_dir_record(char *path, Record *record)
-{
-    iNode inode;
-    char dir_name[MAX_FILE_NAME_SIZE + 1];
-
-    return SUCCESS;
-}
