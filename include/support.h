@@ -2,8 +2,9 @@
 #include "bitmap2.h"
 #include "t2disk.h"
 
-// constante de inodes
-#define POINTER_UNUSED 0
+// constante de de inodes
+#define POINTER_UNUSED (DWORD)0
+#define INVALID_INODE_NUMBER (DWORD)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
@@ -102,7 +103,7 @@ int format_root_dir(int partition);
 
 DWORD checksum(int partition);
 
-DWORD get_inode_of_file_using_filename(char *filename);
+DWORD get_inode_number_from_file_using_filename(char *filename);
 
 boolean is_a_handle_used(FILE2 handle);
 

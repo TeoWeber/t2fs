@@ -111,10 +111,10 @@ void define_empty_inode_from_inode_pointer(iNode *inode_pointer)
 {
     inode_pointer->blocksFileSize = (DWORD)0;
     inode_pointer->bytesFileSize = (DWORD)0;
-    inode_pointer->dataPtr[0] = (DWORD)0;
-    inode_pointer->dataPtr[1] = (DWORD)0;
-    inode_pointer->singleIndPtr = (DWORD)0;
-    inode_pointer->doubleIndPtr = (DWORD)0;
+    inode_pointer->dataPtr[0] = POINTER_UNUSED;
+    inode_pointer->dataPtr[1] = POINTER_UNUSED;
+    inode_pointer->singleIndPtr = POINTER_UNUSED;
+    inode_pointer->doubleIndPtr = POINTER_UNUSED;
     inode_pointer->RefCounter = (DWORD)0;
 }
 
@@ -145,9 +145,9 @@ DWORD checksum(int partition) // Verificar se está funcionando
     return checksum;
 }
 
-DWORD get_inode_of_file_using_filename(char *filename)
+DWORD get_inode_number_from_file_using_filename(char *filename)
 {
-
+    return INVALID_INODE_NUMBER;
 }
 
 boolean is_a_handle_used(FILE2 handle)

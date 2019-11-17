@@ -126,9 +126,11 @@ FILE2 open2(char *filename)
 	if ((handle = retrieve_free_handle()) == INVALID_HANDLE)
 		return ERROR;
 
-	/*
-	open_files[handle].inode_number = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
-	*/
+	DWORD inode_number;
+	if (inode_number = get_inode_number_from_file_using_filename(filename) == INVALID_INODE_NUMBER)
+		return ERROR;
+	
+	open_files[handle].inode_number = inode_number;
 
 	open_files[handle].current_pointer = POINTER_START_POSITION;
 
