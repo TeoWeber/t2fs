@@ -30,11 +30,8 @@ int format2(int partition, int sectors_per_block)
 
 	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
-
-	char buffer[SECTOR_SIZE];
-	memcpy(buffer, &partitions[partition].super_block, SECTOR_SIZE); // Armazenamos o superbloco preenchido em memória, em um char* buffer
-
-	if (write_sector(partitions[partition].boot_sector, buffer) != SUCCESS) // Escrevemos o superbloco armazenado no buffer, no primeiro setor da partição a ser formatada
+		
+	if (write_sector(partitions[partition].boot_sector, (unsigned char *)&partitions[partition].super_block) != SUCCESS) // Escrevemos o superbloco no primeiro setor da partição a ser formatada
 		return ERROR;
 
 	if (reset_bitmaps(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
@@ -122,7 +119,7 @@ FILE2 open2(char *filename)
 		return ERROR;
 
 	/*
-	open_file_inodes[handle] = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
+	open_files[handle].inode_number = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
 	*/
 
 	open_files[handle].current_pointer = POINTER_START_POSITION;
