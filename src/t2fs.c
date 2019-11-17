@@ -4,9 +4,9 @@ int identify2(char *name, int size)
 {
 	initialize_file_system();
 
-	char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Define texto informativo a ser exibidio
+	char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Definimos o texto informativo a ser exibidio
 
-	strncpy(name, grupo, size); // Transfere o texto informativo a ser exibido, para o atributo que será utilizado na exibição
+	strncpy(name, grupo, size); // Transferimos o texto informativo a ser exibido, para o atributo que será utilizado na exibição
 
 	return SUCCESS;
 }
@@ -24,41 +24,23 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 	if (partition < 0) // Índice da partição a ser formatada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
-	if (sectors_per_block > partitions[partition].size_in_sectors)
-		return ERROR;
-	if (sectors_per_block <= 0)
-		return ERROR;
-	if (partition == mounted_partition_index)
+
+	if (partition == mounted_partition_index) // Partição a ser formatada está montada, devemos demontá-la antes então. (certo?)
 		unmount(partition);
 
-	strcopy(partitions[partition].super_block.id, "T2FS");
-	partitions[partition].super_block.version = (WORD)0x7E32;
-	partitions[partition].super_block.superblockSize = (WORD)1;
-
-	partitions[partition].super_block.blockSize = (WORD)sectors_per_block;
-	partitions[partition].super_block.diskSize = (DWORD)(partitions[partition].size_in_sectors / sectors_per_block);
-
-	partitions[partition].super_block.inodeAreaSize = (WORD)1 +
-													  (WORD)((partitions[partition].super_block.diskSize - (DWORD)1) / (DWORD)10);
-	partitions[partition].super_block.freeInodeBitmapSize = (WORD)1 +
-															((partitions[partition].super_block.inodeAreaSize - (WORD)1) / (WORD)(8 * sizeof(iNode)));
-
-	DWORD remainingBlocks = partitions[partition].super_block.diskSize -
-							(DWORD)1 -
-							partitions[partition].super_block.inodeAreaSize -
-							partitions[partition].super_block.freeInodeBitmapSize;
-	partitions[partition].super_block.freeBlocksBitmapSize = (WORD)1 +
-															 (WORD)((remainingBlocks - (DWORD)1) / (DWORD)(8 * SECTOR_SIZE + 1));
-
-	partitions[partition].super_block.Checksum = checksum(partition);
-
-	char buffer[SECTOR_SIZE];
-	memcpy(buffer, &partitions[partition].super_block, SECTOR_SIZE);
-
-	if (write_sector(partitions[partition].boot_sector, buffer) != SUCCESS) // Escreve o superbloco armazenado no buffer, no primeiro setor da partição a ser formatada
+	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
 
-	partitions[partition].is_formatted = PARTITION_FORMATTED; // Define a partição formatada como formatada
+	char buffer[SECTOR_SIZE];
+	memcpy(buffer, &partitions[partition].super_block, SECTOR_SIZE); // Armazenamos o superbloco preenchido em memória, em um char* buffer
+
+	if (write_sector(partitions[partition].boot_sector, buffer) != SUCCESS) // Escrevemos o superbloco armazenado no buffer, no primeiro setor da partição a ser formatada
+		return ERROR;
+
+	if (reset_bitmaps(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
+		return ERROR;
+
+	partitions[partition].is_formatted = PARTITION_FORMATTED; // Definimos a partição formatada como formatada
 	return SUCCESS;
 }
 
@@ -78,7 +60,7 @@ int mount(int partition)
 	if (!partitions[partition].is_formatted) // A partição a ser montada não foi formatada
 		return ERROR;
 
-	mounted_partition_index = partition; // Define a partição a ser montada como a partição montada (ou seja, monta ela)
+	mounted_partition_index = partition; // Definimos a partição a ser montada como a partição montada (ou seja, monta ela)
 	return SUCCESS;
 }
 
@@ -132,13 +114,13 @@ FILE2 open2(char *filename)
 {
 	initialize_file_system();
 
-	// encontra um handle disponível para abrir o arquivo
+	// Encontramos um handle disponível para abrir o arquivo
 	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
 	{
 		if (open_files[handle].handle_used != FILE_HANDLE_UNUSED)
 		{
 			/*
-			open_file_inodes[handle] = INODE_NUMBER; // Armazena o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
+			open_file_inodes[handle] = INODE_NUMBER; // Armazenamos o número do inode do arquivo de nome filename no handle encontrado (ou seja, o seleciona)
 			*/
 
 			open_files[handle].current_pointer = POINTER_START_POSITION;
@@ -155,7 +137,7 @@ int close2(FILE2 handle)
 	if (verify_file_handle(handle) == false)
 		return ERROR;
 
-	open_files[handle].handle_used = FILE_HANDLE_UNUSED; // Libera o handle do arquivo fechado
+	open_files[handle].handle_used = FILE_HANDLE_UNUSED; // Liberamos o handle do arquivo fechado
 	return SUCCESS;
 }
 

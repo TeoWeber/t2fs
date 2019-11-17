@@ -4,7 +4,7 @@
 
 | ATIVIDADE                                          | Quem?      | Pronta? |
 | -------------------------------------------------- | ---------- | ------- |
-| int format2 (int partition, int sectors_per_block) | Fred | Não|
+| int format2 (int partition, int sectors_per_block) | Fred | Prov. Sim|
 | int mount (int partition) | Fred | Prov. Sim |
 | int umount (void) | Fred | Prov. Sim |
 | int identify2 (char *name, int size) | Fred | Sim |

@@ -48,6 +48,73 @@ void initialize_file_system()
     file_system_initialized = true;
 }
 
+int fill_partition_structure(int partition, int sectors_per_block)
+{
+	if (sectors_per_block <= 0) // Tamanho de bloco inválido
+		return ERROR;
+    if (sectors_per_block > 65535) // Overflow em futuro (WORD) casting
+        return ERROR;
+	if (sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
+		return ERROR;
+
+    strcopy(partitions[partition].super_block.id, "T2FS");
+
+    partitions[partition].super_block.version = (WORD)0x7E32;
+
+    partitions[partition].super_block.superblockSize = (WORD)1;
+
+    partitions[partition].super_block.blockSize = (WORD)sectors_per_block;
+
+    partitions[partition].super_block.diskSize = (DWORD)(partitions[partition].size_in_sectors /
+                                                         sectors_per_block);
+    DWORD remainingBlocks = partitions[partition].super_block.diskSize - (DWORD)1;
+
+    // Deveríamos testar se a seguinte operação não dá casting overflow.
+    // Mas dado o tamanho do disco (1MB), isso não tem como ocorrer se o MBR estiver corretamente preenchido.
+    partitions[partition].super_block.inodeAreaSize = (WORD)((remainingBlocks + (DWORD)(10 - 1)) / 
+                                                             (DWORD)10);
+    remainingBlocks -= (DWORD)partitions[partition].super_block.inodeAreaSize;
+
+    partitions[partition].super_block.freeInodeBitmapSize = (partitions[partition].super_block.inodeAreaSize + (WORD)(8 * sizeof(iNode) - 1)) /
+                                                            (WORD)(8 * sizeof(iNode));
+    remainingBlocks -= (DWORD)partitions[partition].super_block.freeInodeBitmapSize;
+
+    // Deveríamos testar se a seguinte operação não dá casting overflow.
+    // Mas dado o tamanho do disco (1MB), isso não tem como ocorrer se o MBR estiver corretamente preenchido.
+    partitions[partition].super_block.freeBlocksBitmapSize = (WORD)((remainingBlocks + (DWORD)(8 * SECTOR_SIZE + 1 - 1)) /
+                                                                    (DWORD)(8 * SECTOR_SIZE + 1));
+    remainingBlocks -= (DWORD)partitions[partition].super_block.freeBlocksBitmapSize;
+
+    partitions[partition].super_block.Checksum = checksum(partition);
+
+    partitions[partition].number_of_inodes = partitions[partition].super_block.inodeAreaSize * sectors_per_block * SECTOR_SIZE / sizeof(iNode);
+
+    partitions[partition].number_of_data_blocks = remainingBlocks;
+
+    return SUCCESS;
+}
+
+int reset_bitmaps(int partition)
+{
+    if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
+        return ERROR;
+
+    for (int i = 1; i <= partitions[partition].number_of_inodes; i++)
+    {
+        setBitmap2(BITMAP_INODE, i, 0);
+    }
+
+    for (int i = 1; i <= partitions[partition].number_of_data_blocks; i++)
+    {
+        setBitmap2(BITMAP_DADOS, i, 0);
+    }
+
+    if (closeBitmap2() != SUCCESS)
+        return ERROR;
+
+    return SUCCESS;
+}
+
 DWORD checksum(int partition) // Verificar se está funcionando
 {
     unsigned long long int gross_checksum = ((DWORD *)&(partitions[partition].super_block))[0] +

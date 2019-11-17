@@ -62,11 +62,13 @@ typedef struct t_mbr
 
 typedef struct t_partition
 {
-    boolean is_formatted;
     DWORD boot_sector;
     DWORD final_sector;
     DWORD size_in_sectors;
+    boolean is_formatted;
     SuperBlock super_block;
+    DWORD number_of_inodes;
+    DWORD number_of_data_blocks;
 } Partition;
 
 typedef struct t_open_file
@@ -91,6 +93,10 @@ DWORD open_dir_inodes[MAX_OPEN_DIRS];     // Deve continuar existindo? (único d
 OpenFile open_directories[MAX_OPEN_DIRS]; // Deve continuar existindo? (único diretório é a raiz)
 
 void initialize_file_system();
+
+int fill_partition_structure(int partition, int sectors_per_block);
+
+int reset_bitmaps(int partition);
 
 DWORD checksum(int partition);
 
