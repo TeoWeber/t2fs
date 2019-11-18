@@ -10,7 +10,7 @@ void initialize_file_system()
     is_the_root_dir_open = false;
 
     // Inicializa o mbr
-    read_sector(0, (BYTE *)&mbr);
+    read_sector(0, (unsigned char *)&mbr);
 
     // Inicializa o setor de boot das partições
     partitions[0].boot_sector = mbr.partition0BootSector;
@@ -178,7 +178,17 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
     if (record->TypeVal != TYPEVAL_REGULAR && record->TypeVal != TYPEVAL_LINK)
         return INVALID_RECORD_PTR;
 
-    // FUNÇÃO NÃO FINALIZADA
+    if (record->TypeVal == TYPEVAL_REGULAR)
+        return record;
+
+    // Então (record->TypeVal == TYPEVAL_LINK)
+    DWORD unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, record->inodeNumber);
+    
+    unsigned char unique_data_block[SECTOR_SIZE];
+    if (read_sector(unique_data_block_ptr, unique_data_block) != SUCCESS)
+        return INVALID_RECORD_PTR;
+    
+    return get_record_ptr_from_file_given_filename((char *)unique_data_block);
 }
 
 // Convenção de uso: O primeiro registro da root dir é o i-th registro, i == 0
@@ -189,11 +199,11 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
                                               (DWORD)sizeof(Record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
-    unsigned char buffer[SECTOR_SIZE];
-    if (read_sector(data_block_ptr, *buffer) != SUCCESS)
+    unsigned char data_block[SECTOR_SIZE];
+    if (read_sector(data_block_ptr, data_block) != SUCCESS)
         return INVALID_RECORD_PTR;
 
-    return &((Record *)buffer)[i % number_of_records_per_data_blocks];
+    return &((Record *)data_block)[i % number_of_records_per_data_blocks];
 }
 
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
