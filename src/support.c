@@ -49,7 +49,7 @@ int fill_partition_structure(int partition, int sectors_per_block)
     if (sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
         return ERROR;
 
-    string_copy(partitions[partition].super_block.id, "T2FS");
+    strcpy(partitions[partition].super_block.id, "T2FS");
 
     partitions[partition].super_block.version = (WORD)0x7E32;
 
@@ -163,7 +163,7 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
     Record *record_ptr;
     for (int i = 0; (record_ptr = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
     {
-        if (string_compare(record_ptr->name, filename) == 0) // Se as strings são iguais string_compare retorna 0
+        if (strcmp(record_ptr->name, filename) == 0) // Se as strings são iguais strcmp retorna 0
         {
             hitFlag = true;
             break;
@@ -237,36 +237,4 @@ int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
     return ERROR;
-}
-
-int string_compare(const char *s1, const char *s2)
-{
-    const unsigned char *p1 = (const unsigned char *)s1;
-    const unsigned char *p2 = (const unsigned char *)s2;
-
-    while (*p1 != '\0')
-    {
-        if (*p2 == '\0')
-            return 1;
-        if (*p2 > *p1)
-            return -1;
-        if (*p1 > *p2)
-            return 1;
-
-        p1++;
-        p2++;
-    }
-
-    if (*p2 != '\0')
-        return -1;
-
-    return 0;
-}
-
-char *string_copy(char *destination, const char *source)
-{
-}
-
-char *string_copy_with_size(char *destination, const char *source, unsigned int num)
-{
 }

@@ -6,7 +6,7 @@ int identify2(char *name, int size)
 
 	char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Definimos o texto informativo a ser exibidio
 
-	string_copy_with_size(name, grupo, size); // Transferimos o texto informativo a ser exibido, para o atributo que será utilizado na exibição
+	strncpy(name, grupo, size); // Transferimos o texto informativo a ser exibido, para o atributo que será utilizado na exibição
 
 	return SUCCESS;
 }
@@ -248,7 +248,7 @@ int readdir2(DIRENT2 *dentry)
 	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
-	string_copy(dentry->name, record_ptr->name);
+	strcpy(dentry->name, record_ptr->name);
 	dentry->fileType = record_ptr->TypeVal;
 	dentry->fileSize = inode_ptr->bytesFileSize;
 
@@ -300,7 +300,7 @@ int sln2(char *linkname, char *filename)
     if (read_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
         return INVALID_RECORD_PTR;
     
-    string_copy((char *)link_unique_data_block, ref_record_ptr->name);
+    strcpy((char *)link_unique_data_block, ref_record_ptr->name);
 
 	return SUCCESS;
 }

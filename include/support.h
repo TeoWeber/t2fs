@@ -1,3 +1,4 @@
+#include <string.h>
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
@@ -118,9 +119,3 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
-
-int string_compare (const char *s1, const char *s2);
-
-char *string_copy(char *destination, const char *source);
-
-char *string_copy_with_size(char *destination, const char *source, unsigned int num);
