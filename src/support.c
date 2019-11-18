@@ -123,7 +123,9 @@ int format_root_dir(int partition)
     if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
         return ERROR;
 
-    setBitmap2(BITMAP_INODE, 0, 1); // Inode da raiz está ocupado
+    // Setamos inode da raiz como ocupado
+    if (setBitmap2(BITMAP_INODE, 0, 1) != SUCCESS)
+        return ERROR;
 
     if (closeBitmap2() != SUCCESS)
         return ERROR;
@@ -131,6 +133,9 @@ int format_root_dir(int partition)
     iNode inode;
 
     define_empty_inode_from_inode_ptr(&inode);
+
+    if((root_dir_inode_ptr = allocate_next_free_inode_given_itself_and_get_ptr(inode)) != INVALID_INODE_PTR)
+        return ERROR;
 
     return SUCCESS;
 }
@@ -227,6 +232,25 @@ FILE2 get_first_unused_handle()
 iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
 {
     return INVALID_INODE_PTR;
+}
+
+iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode)
+{
+    return INVALID_INODE_PTR;
+}
+
+int alocate_next_free_data_block_to_file_given_file_inode(iNode inode)
+{
+    DWORD next_free_block_ptr;
+    if ((next_free_block_ptr = (DWORD)searchBitmap2(BITMAP_DADOS, 0)) != INVALID_PTR);
+
+    if (inode.blocksFileSize == 0)
+    {
+    }
+
+    inode.blocksFileSize++;
+
+    return SUCCESS;
 }
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)

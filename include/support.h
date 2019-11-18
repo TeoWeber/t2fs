@@ -92,6 +92,8 @@ boolean is_the_root_dir_open;
 
 DWORD root_dir_entry_current_ptr;
 
+iNode *root_dir_inode_ptr;
+
 void initialize_file_system();
 
 int fill_partition_structure(int partition, int sectors_per_block);
@@ -115,6 +117,10 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
 FILE2 get_first_unused_handle();
 
 iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
+
+iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode);
+
+int alocate_next_free_data_block_to_file_given_file_inode(iNode inode);
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
