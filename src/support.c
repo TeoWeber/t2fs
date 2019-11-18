@@ -209,6 +209,7 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number)
 {
+    return INVALID_PTR;
 }
 
 FILE2 get_first_unused_handle()
@@ -230,10 +231,12 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
+    return ERROR;
 }
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
+    return ERROR;
 }
 
 int string_compare(const char *s1, const char *s2)

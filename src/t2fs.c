@@ -99,7 +99,7 @@ FILE2 create2(char *filename)
 {
 	initialize_file_system();
 
-	return -1;
+	return INVALID_HANDLE;
 }
 
 /*-----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ int delete2(char *filename)
 {
 	initialize_file_system();
 
-	return -1;
+	return ERROR;
 }
 
 /*-----------------------------------------------------------------------------
@@ -120,15 +120,15 @@ FILE2 open2(char *filename)
 	initialize_file_system();
 
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
-		return ERROR;
+		return INVALID_HANDLE;
 
 	FILE2 handle;
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
-		return ERROR;
+		return INVALID_HANDLE;
 
 	Record *record_ptr;
 	if (record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
-		return ERROR;
+		return INVALID_HANDLE;
 	
 	open_files[handle].record = *record_ptr;
 
@@ -270,7 +270,7 @@ int sln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-	return -1;
+	return ERROR;
 }
 
 /*-----------------------------------------------------------------------------
@@ -280,5 +280,5 @@ int hln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-	return -1;
+	return ERROR;
 }
