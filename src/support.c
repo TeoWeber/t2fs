@@ -49,7 +49,7 @@ int fill_partition_structure(int partition, int sectors_per_block)
     if (sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
         return ERROR;
 
-    strcopy(partitions[partition].super_block.id, "T2FS");
+    string_copy(partitions[partition].super_block.id, "T2FS");
 
     partitions[partition].super_block.version = (WORD)0x7E32;
 
@@ -160,10 +160,10 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
 {
     // Percorremos todas entradas em busca de uma entrada com nome == filename
     boolean hitFlag = false;
-    Record *record;
-    for (int i = 0; (record = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
+    Record *record_ptr;
+    for (int i = 0; (record_ptr = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
     {
-        if (string_compare(record->name, filename) == 0) // Se as strings são iguais string_compare retorna 0
+        if (string_compare(record_ptr->name, filename) == 0) // Se as strings são iguais string_compare retorna 0
         {
             hitFlag = true;
             break;
@@ -175,19 +175,19 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
         return INVALID_RECORD_PTR;
 
     // Se o tipo da entrada não for válido, retornamos falha
-    if (record->TypeVal != TYPEVAL_REGULAR && record->TypeVal != TYPEVAL_LINK)
+    if (record_ptr->TypeVal != TYPEVAL_REGULAR && record_ptr->TypeVal != TYPEVAL_LINK)
         return INVALID_RECORD_PTR;
 
-    if (record->TypeVal == TYPEVAL_REGULAR)
-        return record;
+    if (record_ptr->TypeVal == TYPEVAL_REGULAR)
+        return record_ptr;
 
     // Então (record->TypeVal == TYPEVAL_LINK)
-    DWORD unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, record->inodeNumber);
-    
+    DWORD unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, record_ptr->inodeNumber);
+
     unsigned char unique_data_block[SECTOR_SIZE];
     if (read_sector(unique_data_block_ptr, unique_data_block) != SUCCESS)
         return INVALID_RECORD_PTR;
-    
+
     return get_record_ptr_from_file_given_filename((char *)unique_data_block);
 }
 
@@ -261,4 +261,12 @@ int string_compare(const char *s1, const char *s2)
         return -1;
 
     return 0;
+}
+
+char *string_copy(char *destination, const char *source)
+{
+}
+
+char *string_copy_with_size(char *destination, const char *source, unsigned int num)
+{
 }

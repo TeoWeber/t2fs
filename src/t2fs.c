@@ -6,7 +6,7 @@ int identify2(char *name, int size)
 
 	char *grupo = "Astelio Jose Weber (283864)\nFrederico Schwartzhaupt (304244)\nJulia Violato (290185)"; // Definimos o texto informativo a ser exibidio
 
-	strncpy(name, grupo, size); // Transferimos o texto informativo a ser exibido, para o atributo que será utilizado na exibição
+	string_copy_with_size(name, grupo, size); // Transferimos o texto informativo a ser exibido, para o atributo que será utilizado na exibição
 
 	return SUCCESS;
 }
@@ -99,6 +99,9 @@ FILE2 create2(char *filename)
 {
 	initialize_file_system();
 
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
 	return INVALID_HANDLE;
 }
 
@@ -108,6 +111,9 @@ Função:	Função usada para remover (apagar) um arquivo do disco.
 int delete2(char *filename)
 {
 	initialize_file_system();
+
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
 
 	return ERROR;
 }
@@ -162,20 +168,20 @@ int read2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	iNode *inode;
-	if ((inode = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
+	iNode *inode_ptr;
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
 	// verifica eof
-	if (file.current_ptr >= inode->bytesFileSize)
+	if (file.current_ptr >= inode_ptr->bytesFileSize)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if (size > inode->bytesFileSize - file.current_ptr)
-		size = inode->bytesFileSize - file.current_ptr;
+	if (size > inode_ptr->bytesFileSize - file.current_ptr)
+		size = inode_ptr->bytesFileSize - file.current_ptr;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if (read_n_bytes_from_file(file.current_ptr, size, *inode, buffer) == ERROR)
+	if (read_n_bytes_from_file(file.current_ptr, size, *inode_ptr, buffer) == ERROR)
 		return ERROR;
 
 	file.current_ptr += size;
@@ -194,11 +200,11 @@ int write2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	iNode *inode;
-	if ((inode = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
+	iNode *inode_ptr;
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, *inode, buffer);
+	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, *inode_ptr, buffer);
 	if (bytes_written == ERROR)
 		return ERROR;
 
@@ -234,17 +240,17 @@ int readdir2(DIRENT2 *dentry)
 	if (!is_the_root_dir_open)
 		return ERROR;
 
-	Record *record;
-	if ((record = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr)) == INVALID_RECORD_PTR)
+	Record *record_ptr;
+	if ((record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr)) == INVALID_RECORD_PTR)
 		return ERROR;
 	
-	iNode *inode;
-	if ((inode = get_inode_ptr_given_inode_number(record->inodeNumber)) == INVALID_INODE_PTR)
+	iNode *inode_ptr;
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
-	strcopy(dentry->name, record->name);
-	dentry->fileType = record->TypeVal;
-	dentry->fileSize = inode->bytesFileSize;
+	string_copy(dentry->name, record_ptr->name);
+	dentry->fileType = record_ptr->TypeVal;
+	dentry->fileSize = inode_ptr->bytesFileSize;
 
 	root_dir_entry_current_ptr++;
 
@@ -270,7 +276,33 @@ int sln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-	return ERROR;
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
+	Record *ref_record_ptr;
+	if (ref_record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
+		return ERROR;
+
+	if (create2(linkname) != SUCCESS)
+		return ERROR;
+
+	Record *link_record_ptr;
+	if (link_record_ptr = get_record_ptr_from_file_given_filename(linkname) == INVALID_RECORD_PTR)
+		return ERROR;
+
+	link_record_ptr->TypeVal = TYPEVAL_LINK;
+
+	// FALTA ALOCAR UM BLOCO DE DADOS
+
+    DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
+    
+    unsigned char link_unique_data_block[SECTOR_SIZE];
+    if (read_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
+        return INVALID_RECORD_PTR;
+    
+    string_copy((char *)link_unique_data_block, ref_record_ptr->name);
+
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -280,5 +312,28 @@ int hln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
-	return ERROR;
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
+	Record *ref_record_ptr;
+	if (ref_record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
+		return ERROR;
+
+	if (create2(linkname) != SUCCESS)
+		return ERROR;
+
+	Record *link_record_ptr;
+	if (link_record_ptr = get_record_ptr_from_file_given_filename(linkname) == INVALID_RECORD_PTR)
+		return ERROR;
+
+	link_record_ptr->TypeVal = ref_record_ptr->TypeVal;
+	link_record_ptr->inodeNumber = ref_record_ptr->inodeNumber;
+
+	iNode *inode_ptr;
+	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
+		return ERROR;
+
+	inode_ptr->RefCounter++;
+
+	return SUCCESS;
 }

@@ -17,5 +17,5 @@
 | int opendir2 (void) | Fred e Julia | Sim |
 | int readdir2 (DIRENT2 *dentry) | Fred | Não |
 | int closedir2 (void) | Fred e Julia | Sim |
-| int sln2(char char *linkname, char *filename) | ? | Não |
-| int hln2(char char *linkname, char *filename) | ? | Não |
+| int sln2(char char *linkname, char *filename) | Fred | Não |
+| int hln2(char char *linkname, char *filename) | Fred | Não |
