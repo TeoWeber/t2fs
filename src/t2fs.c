@@ -126,13 +126,13 @@ FILE2 open2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return ERROR;
 
-	Record *record_pointer;
-	if (record_pointer = get_record_pointer_from_file_given_filename(filename) == INVALID_RECORD_POINTER)
+	Record *record_ptr;
+	if (record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
 		return ERROR;
 	
-	open_files[handle].record = *record_pointer;
+	open_files[handle].record = *record_ptr;
 
-	open_files[handle].current_pointer = POINTER_START_POSITION;
+	open_files[handle].current_ptr = PTR_START_POSITION;
 
 	open_files[handle].handle_used = HANDLE_USED; // Alocamos o handle do arquivo aberto
 
@@ -163,22 +163,22 @@ int read2(FILE2 handle, char *buffer, int size)
 	Record record = file.record;
 
 	iNode *inode;
-	if ((inode = get_inode_pointer_given_inode_number(record.inodeNumber)) == INVALID_INODE_POINTER)
+	if ((inode = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
 	// verifica eof
-	if (file.current_pointer >= inode->bytesFileSize)
+	if (file.current_ptr >= inode->bytesFileSize)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if (size > inode->bytesFileSize - file.current_pointer)
-		size = inode->bytesFileSize - file.current_pointer;
+	if (size > inode->bytesFileSize - file.current_ptr)
+		size = inode->bytesFileSize - file.current_ptr;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if (read_n_bytes_from_file(file.current_pointer, size, *inode, buffer) == ERROR)
+	if (read_n_bytes_from_file(file.current_ptr, size, *inode, buffer) == ERROR)
 		return ERROR;
 
-	file.current_pointer += size;
+	file.current_ptr += size;
 	open_files[handle] = file;
 
 	return size;
@@ -195,14 +195,14 @@ int write2(FILE2 handle, char *buffer, int size)
 	Record record = file.record;
 
 	iNode *inode;
-	if ((inode = get_inode_pointer_given_inode_number(record.inodeNumber)) == INVALID_INODE_POINTER)
+	if ((inode = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file(file.current_pointer, size, *inode, buffer);
+	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, *inode, buffer);
 	if (bytes_written == ERROR)
 		return ERROR;
 
-	file.current_pointer += bytes_written;
+	file.current_ptr += bytes_written;
 	open_files[handle] = file;
 
 	return bytes_written;
@@ -211,12 +211,15 @@ int write2(FILE2 handle, char *buffer, int size)
 int opendir2(void)
 {
 	initialize_file_system();
+
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
 	
 	if (is_the_root_dir_open)
 		return ERROR;
 
 	is_the_root_dir_open = true;
-	root_dir_entry_current_pointer = 0;
+	root_dir_entry_current_ptr = PTR_START_POSITION;
 
 	return SUCCESS;
 }
@@ -231,11 +234,19 @@ int readdir2(DIRENT2 *dentry)
 	if (!is_the_root_dir_open)
 		return ERROR;
 
-	// COLOCAR EM dentry OS DADOS DO i-ÉSIMO FILE RECORD DA RAIZ
-	// PRIMEIRO FILE RECORD ESTÁ EM i = 0
-	// i = root_dir_entry_current_pointer
+	Record *record;
+	if ((record = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr)) == INVALID_RECORD_PTR)
+		return ERROR;
+	
+	iNode *inode;
+	if ((inode = get_inode_ptr_given_inode_number(record->inodeNumber)) == INVALID_INODE_PTR)
+		return ERROR;
 
-	root_dir_entry_current_pointer++;
+	strcopy(dentry->name, record->name);
+	dentry->fileType = record->TypeVal;
+	dentry->fileSize = inode->bytesFileSize;
+
+	root_dir_entry_current_ptr++;
 
 	return SUCCESS;
 }

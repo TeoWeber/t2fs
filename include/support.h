@@ -3,17 +3,17 @@
 #include "t2disk.h"
 
 // constante de de inodes
-#define POINTER_UNUSED (DWORD)0
-#define INVALID_INODE_POINTER (iNode *)0
+#define INVALID_PTR (DWORD)0
+#define INVALID_INODE_PTR (iNode *)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
 #define MAX_OPEN_FILES 10
-#define POINTER_START_POSITION 0
+#define PTR_START_POSITION (DWORD)0
 #define HANDLE_USED true
 #define HANDLE_UNUSED false
 #define INVALID_HANDLE (FILE2)-1
-#define INVALID_RECORD_POINTER (Record *)0
+#define INVALID_RECORD_PTR (Record *)0
 
 // constantes de partições
 #define MAX_PARTITIONS 4
@@ -74,7 +74,7 @@ typedef struct t_open_file
 {
     boolean handle_used;
     Record record;
-    DWORD current_pointer;
+    DWORD current_ptr;
 } OpenFile;
 
 boolean file_system_initialized = false;
@@ -89,7 +89,7 @@ OpenFile open_files[MAX_OPEN_FILES];
 
 boolean is_the_root_dir_open;
 
-int root_dir_entry_current_pointer;
+DWORD root_dir_entry_current_ptr;
 
 void initialize_file_system();
 
@@ -97,7 +97,7 @@ int fill_partition_structure(int partition, int sectors_per_block);
 
 int reset_bitmaps(int partition);
 
-void define_empty_inode_from_inode_pointer(iNode *inode_pointer);
+void define_empty_inode_from_inode_ptr(iNode *inode_ptr);
 
 int format_root_dir(int partition);
 
@@ -105,14 +105,18 @@ DWORD checksum(int partition);
 
 boolean is_a_handle_used(FILE2 handle);
 
-Record *get_record_pointer_from_file_given_filename(char *filename);
+Record *get_record_ptr_from_file_given_filename(char *filename);
+
+Record *get_i_th_record_ptr_from_root_dir(DWORD i);
+
+DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number);
 
 FILE2 get_first_unused_handle();
 
-iNode *get_inode_pointer_given_inode_number(DWORD inode_number);
+iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 
-int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer);
+int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
-int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer);
+int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
 
-int strcmp (const char *s1, const char *s2);
+int string_compare (const char *s1, const char *s2);

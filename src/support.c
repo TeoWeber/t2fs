@@ -107,15 +107,15 @@ int reset_bitmaps(int partition)
     return SUCCESS;
 }
 
-void define_empty_inode_from_inode_pointer(iNode *inode_pointer)
+void define_empty_inode_from_inode_ptr(iNode *inode_ptr)
 {
-    inode_pointer->blocksFileSize = (DWORD)0;
-    inode_pointer->bytesFileSize = (DWORD)0;
-    inode_pointer->dataPtr[0] = POINTER_UNUSED;
-    inode_pointer->dataPtr[1] = POINTER_UNUSED;
-    inode_pointer->singleIndPtr = POINTER_UNUSED;
-    inode_pointer->doubleIndPtr = POINTER_UNUSED;
-    inode_pointer->RefCounter = (DWORD)0;
+    inode_ptr->blocksFileSize = (DWORD)0;
+    inode_ptr->bytesFileSize = (DWORD)0;
+    inode_ptr->dataPtr[0] = INVALID_PTR;
+    inode_ptr->dataPtr[1] = INVALID_PTR;
+    inode_ptr->singleIndPtr = INVALID_PTR;
+    inode_ptr->doubleIndPtr = INVALID_PTR;
+    inode_ptr->RefCounter = (DWORD)0;
 }
 
 int format_root_dir(int partition)
@@ -130,7 +130,7 @@ int format_root_dir(int partition)
 
     iNode inode;
 
-    define_empty_inode_from_inode_pointer(&inode);
+    define_empty_inode_from_inode_ptr(&inode);
 
     return SUCCESS;
 }
@@ -156,41 +156,49 @@ boolean is_a_handle_used(FILE2 handle)
     return true;
 }
 
-Record *get_record_pointer_from_file_given_filename(char *filename)
+Record *get_record_ptr_from_file_given_filename(char *filename)
 {
-    // Salvamos contexto do root dir (aberto/fechado) (entrada apontada)
-    boolean was_the_root_dir_open = is_the_root_dir_open;
-    int root_dir_entry_late_pointer = root_dir_entry_current_pointer;
-
-    // Abrimos root dir em sua primeira entrada
-    is_the_root_dir_open = true;
-    root_dir_entry_current_pointer = 0;
-
     // Percorremos todas entradas em busca de uma entrada com nome == filename
     boolean hitFlag = false;
-    DIRENT2 dentry;
-    while (readdir2(&dentry) == SUCCESS)
+    Record *record;
+    for (int i = 0; (record = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
     {
-        if (strcmp(dentry.name, filename) == 0) // Se as strings são iguais strcmp retorna 0
+        if (string_compare(record->name, filename) == 0) // Se as strings são iguais string_compare retorna 0
         {
             hitFlag = true;
             break;
         }
     }
 
-    // Restauramos contexto do root dir (aberto/fechado) (entrada apontada)
-    is_the_root_dir_open = was_the_root_dir_open;
-    root_dir_entry_current_pointer = root_dir_entry_late_pointer;
-
     // Se não encontrou nenhuma entrada na busca anterior, retornamos falha
     if (!hitFlag)
-        return INVALID_RECORD_POINTER;
+        return INVALID_RECORD_PTR;
 
     // Se o tipo da entrada não for válido, retornamos falha
-    if (dentry.fileType != TYPEVAL_REGULAR && dentry.fileType != TYPEVAL_LINK)
-        return INVALID_RECORD_POINTER;
+    if (record->TypeVal != TYPEVAL_REGULAR && record->TypeVal != TYPEVAL_LINK)
+        return INVALID_RECORD_PTR;
 
     // FUNÇÃO NÃO FINALIZADA
+}
+
+// Convenção de uso: O primeiro registro da root dir é o i-th registro, i == 0
+Record *get_i_th_record_ptr_from_root_dir(DWORD i)
+{
+    DWORD number_of_records_per_data_blocks = (DWORD)partitions[mounted_partition_index].super_block.blockSize *
+                                              SECTOR_SIZE /
+                                              (DWORD)sizeof(Record);
+    DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
+
+    unsigned char buffer[SECTOR_SIZE];
+    if (read_sector(data_block_ptr, *buffer) != SUCCESS)
+        return INVALID_RECORD_PTR;
+
+    return &((Record *)buffer)[i % number_of_records_per_data_blocks];
+}
+
+// Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
+DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number)
+{
 }
 
 FILE2 get_first_unused_handle()
@@ -205,20 +213,20 @@ FILE2 get_first_unused_handle()
     return INVALID_HANDLE;
 }
 
-iNode *get_inode_pointer_given_inode_number(DWORD inode_number)
+iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
 {
-    return INVALID_INODE_POINTER;
+    return INVALID_INODE_PTR;
 }
 
-int read_n_bytes_from_file(DWORD pointer, int n, iNode inode, char *buffer)
-{
-}
-
-int write_n_bytes_to_file(DWORD pointer, int n, iNode inode, char *buffer)
+int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
 }
 
-int strcmp(const char *s1, const char *s2)
+int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
+{
+}
+
+int string_compare(const char *s1, const char *s2)
 {
     const unsigned char *p1 = (const unsigned char *)s1;
     const unsigned char *p2 = (const unsigned char *)s2;
