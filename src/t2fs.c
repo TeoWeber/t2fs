@@ -12,6 +12,29 @@ int identify2(char *name, int size)
 }
 
 /*-----------------------------------------------------------------------------
+Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
+-----------------------------------------------------------------------------*/
+int unmount(void)
+{
+	initialize_file_system();
+
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
+	int handle;
+	for (handle = 0; handle < MAX_OPEN_FILES; handle++)
+	{
+		open_files[handle].handle_used = HANDLE_UNUSED;
+	}
+
+	is_the_root_dir_open = false;
+
+	mounted_partition_index = NO_MOUNTED_PARTITION;
+
+	return SUCCESS;
+}
+
+/*-----------------------------------------------------------------------------
 Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para o sistema de
 		arquivos T2FS definido usando blocos de dados de tamanho
 		corresponde a um múltiplo de setores dados por sectors_per_block.
@@ -62,28 +85,6 @@ int mount(int partition)
 		return ERROR;
 
 	mounted_partition_index = partition; // Definimos a partição a ser montada como a partição montada (ou seja, monta ela)
-
-	return SUCCESS;
-}
-
-/*-----------------------------------------------------------------------------
-Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
------------------------------------------------------------------------------*/
-int unmount(void)
-{
-	initialize_file_system();
-
-	if (mounted_partition_index == NO_MOUNTED_PARTITION)
-		return ERROR;
-
-	for (int handle = 0; handle < MAX_OPEN_FILES; handle++)
-	{
-		open_files[handle].handle_used = HANDLE_UNUSED;
-	}
-
-	is_the_root_dir_open = false;
-
-	mounted_partition_index = NO_MOUNTED_PARTITION;
 
 	return SUCCESS;
 }
@@ -193,7 +194,7 @@ int read2(FILE2 handle, char *buffer, int size)
 		return ERROR;
 
 	// verifica se size > o restante do arquivo
-	if (size > inode_ptr->bytesFileSize - file.current_ptr)
+	if (size > (int)(inode_ptr->bytesFileSize - file.current_ptr))
 		size = inode_ptr->bytesFileSize - file.current_ptr;
 
 	// lê conteúdo e atualiza handle do arquivo
@@ -296,20 +297,23 @@ int sln2(char *linkname, char *filename)
 		return ERROR;
 
 	Record *ref_record_ptr;
-	if (ref_record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
+	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
+	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
 	if (create2(linkname) != SUCCESS)
 		return ERROR;
 
 	Record *link_record_ptr;
-	if (link_record_ptr = get_record_ptr_from_file_given_filename(linkname) == INVALID_RECORD_PTR)
+	link_record_ptr = get_record_ptr_from_file_given_filename(linkname);
+	if (link_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
 	link_record_ptr->TypeVal = TYPEVAL_LINK;
 
 	iNode *link_inode_ptr;
-	if ((link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
+	link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber);
+	if (link_inode_ptr == INVALID_INODE_PTR)
 		return ERROR;
 
 	if (alocate_next_free_data_block_to_file_given_file_inode(*link_inode_ptr) != SUCCESS)

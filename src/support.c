@@ -234,6 +234,8 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number)
 {
+
+
     return INVALID_PTR;
 }
 
@@ -369,12 +371,35 @@ int alocate_next_free_data_block_to_file_given_file_inode(iNode inode)
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
-    int read_bytes;
-    int curr_byte = 0;
+    int read_bytes = 0;
+    int sector;
+    char sector_buffer[SECTOR_SIZE];
 
-    
+    while ( read_bytes < n )
+    {
+        int remaining_bytes = n - read_bytes;
+        int success; 
 
-    return ERROR;
+        // encontrar setor
+        success = read_sector( sector, sector_buffer );
+        if ( success != 0 )
+            return ERROR;
+
+        if ( remaining_bytes >= 256 )
+        {
+            strcat( buffer, sector_buffer );
+            read_bytes += 256;
+        }
+        else
+        {
+            int i;
+            for (i = 0; i < remaining_bytes; i++)
+                buffer[read_bytes+i-1] = sector_buffer[i];
+            read_bytes += remaining_bytes;
+        }
+    }
+
+    return read_bytes;
 }
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)

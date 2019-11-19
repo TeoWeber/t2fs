@@ -31,6 +31,9 @@
 #define TYPEVAL_REGULAR 0x01
 #define TYPEVAL_LINK 0x02
 
+typedef int FILE2;
+typedef int DIR2;
+
 typedef struct t2fs_superbloco SuperBlock;
 typedef struct t2fs_record Record;
 typedef struct t2fs_inode iNode;
