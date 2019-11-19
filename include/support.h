@@ -14,7 +14,7 @@
 #define HANDLE_USED true
 #define HANDLE_UNUSED false
 #define INVALID_HANDLE (FILE2)-1
-#define INVALID_RECORD_PTR (Record *)0
+#define INVALID_RECORD_PTR 0
 
 // constantes de partições
 #define MAX_PARTITIONS 4
@@ -33,6 +33,10 @@
 
 typedef int FILE2;
 typedef int DIR2;
+
+typedef unsigned char BYTE;
+typedef unsigned short int WORD;
+typedef unsigned int DWORD;
 
 typedef struct t2fs_superbloco SuperBlock;
 typedef struct t2fs_record Record;

@@ -12,29 +12,6 @@ int identify2(char *name, int size)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
------------------------------------------------------------------------------*/
-int unmount(void)
-{
-	initialize_file_system();
-
-	if (mounted_partition_index == NO_MOUNTED_PARTITION)
-		return ERROR;
-
-	int handle;
-	for (handle = 0; handle < MAX_OPEN_FILES; handle++)
-	{
-		open_files[handle].handle_used = HANDLE_UNUSED;
-	}
-
-	is_the_root_dir_open = false;
-
-	mounted_partition_index = NO_MOUNTED_PARTITION;
-
-	return SUCCESS;
-}
-
-/*-----------------------------------------------------------------------------
 Função:	Formata logicamente uma partição do disco virtual t2fs_disk.dat para o sistema de
 		arquivos T2FS definido usando blocos de dados de tamanho
 		corresponde a um múltiplo de setores dados por sectors_per_block.
@@ -49,7 +26,7 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 
 	if (partition == mounted_partition_index) // Partição a ser formatada está montada, devemos demontá-la antes então. (certo?)
-		unmount(partition);
+		umount(partition);
 
 	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
@@ -90,6 +67,29 @@ int mount(int partition)
 }
 
 /*-----------------------------------------------------------------------------
+Função:	Desmonta a partição atualmente montada, liberando o ponto de montagem.
+-----------------------------------------------------------------------------*/
+int umount(void)
+{
+	initialize_file_system();
+
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
+	int handle;
+	for (handle = 0; handle < MAX_OPEN_FILES; handle++)
+	{
+		open_files[handle].handle_used = HANDLE_UNUSED;
+	}
+
+	is_the_root_dir_open = false;
+
+	mounted_partition_index = NO_MOUNTED_PARTITION;
+
+	return SUCCESS;
+}
+
+/*-----------------------------------------------------------------------------
 Função:	Função usada para criar um novo arquivo no disco e abrí-lo,
 		sendo, nesse último aspecto, equivalente a função open2.
 		No entanto, diferentemente da open2, se filename referenciar um
@@ -108,7 +108,8 @@ FILE2 create2(char *filename)
 		return INVALID_HANDLE;
 
 	Record *record_ptr;
-	if (record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR )
+	record_ptr = get_record_ptr_from_file_given_filename(filename);
+	if ( record_ptr == INVALID_RECORD_PTR )
 	{
 		open_files[handle].record = *record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
@@ -150,7 +151,8 @@ FILE2 open2(char *filename)
 		return INVALID_HANDLE;
 
 	Record *record_ptr;
-	if (record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
+	record_ptr = get_record_ptr_from_file_given_filename(filename);
+	if (record_ptr == INVALID_RECORD_PTR)
 		return INVALID_HANDLE;
 	
 	open_files[handle].record = *record_ptr;
@@ -343,14 +345,16 @@ int hln2(char *linkname, char *filename)
 		return ERROR;
 
 	Record *ref_record_ptr;
-	if (ref_record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR)
+	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
+	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
 	if (create2(linkname) != SUCCESS)
 		return ERROR;
 
 	Record *link_record_ptr;
-	if (link_record_ptr = get_record_ptr_from_file_given_filename(linkname) == INVALID_RECORD_PTR)
+	link_record_ptr = get_record_ptr_from_file_given_filename(linkname);
+	if (link_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
 	link_record_ptr->TypeVal = ref_record_ptr->TypeVal;

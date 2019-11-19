@@ -6,10 +6,6 @@
 #include "t2disk.h"
 #include "support.h"
 
-typedef unsigned char BYTE;
-typedef unsigned short int WORD;
-typedef unsigned int DWORD;
-
 #pragma pack(push, 1)
 
 /** Registro com as informa��es da entrada de diret�rio, lida com readdir2 */

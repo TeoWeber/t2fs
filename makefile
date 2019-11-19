@@ -18,10 +18,10 @@ all: t2fs.o support.o
 	ar -crs $(LIB_DIR)/libt2fs.a $^ $(BIN_DIR)/*.o
 
 t2fs.o: 
-	$(CC) -c $(SRC_DIR)/t2fs.c -o $(BIN_DIR)/$@ -Wall -Wextra -02
+	$(CC) -c $(SRC_DIR)/t2fs.c -o $(BIN_DIR)/$@ -Wall -Wextra
 
 support.o:
-	$(CC) -c $(SRC_DIR)/support.c -o $(BIN_DIR)/$@ -Wall -Wextra -02
+	$(CC) -c $(SRC_DIR)/support.c -o $(BIN_DIR)/$@ -Wall -Wextra
 
 clean:
 	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/t2fs.o $(BIN_DIR)/support.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~

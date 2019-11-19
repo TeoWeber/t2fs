@@ -385,10 +385,10 @@ int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
         if ( success != 0 )
             return ERROR;
 
-        if ( remaining_bytes >= 256 )
+        if ( remaining_bytes >= SECTOR_SIZE )
         {
             strcat( buffer, sector_buffer );
-            read_bytes += 256;
+            read_bytes += SECTOR_SIZE;
         }
         else
         {
@@ -404,7 +404,36 @@ int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
-    return ERROR;
+    int written_bytes = 0;
+    int sector;
+    char sector_buffer[SECTOR_SIZE];
+
+    while ( written_bytes < n )
+    {
+        int remaining_bytes = n - written_bytes;
+        int i;
+        
+        if ( remaining_bytes >= SECTOR_SIZE )
+        {
+            for ( i = 0; i < SECTOR_SIZE; i++ )
+                sector_buffer[i] = buffer[written_bytes+i-1];
+            written_bytes += SECTOR_SIZE;
+        }
+        else
+        {
+            for ( i = 0; i < remaining_bytes; i++ )
+                sector_buffer[i] = buffer[written_bytes+i-1];
+            written_bytes += remaining_bytes;
+        }
+        
+        // encontrar setor
+        int success;
+        success = write_sector( sector, sector_buffer );
+        if ( success != 0 )
+            return ERROR;
+    }
+
+    return written_bytes;
 }
 
 DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number)
