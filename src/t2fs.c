@@ -102,7 +102,23 @@ FILE2 create2(char *filename)
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
-	return INVALID_HANDLE;
+	FILE2 handle;
+	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
+		return INVALID_HANDLE;
+
+	Record *record_ptr;
+	if (record_ptr = get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR )
+	{
+		open_files[handle].record = *record_ptr;
+		open_files[handle].current_ptr = PTR_START_POSITION;
+		open_files[handle].handle_used = HANDLE_USED;
+	}
+	else
+	{
+		// nao tenho certeza sobre o que muda quando o arquivo já existe
+	}
+	
+	return handle;
 }
 
 /*-----------------------------------------------------------------------------

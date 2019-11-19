@@ -369,6 +369,11 @@ int alocate_next_free_data_block_to_file_given_file_inode(iNode inode)
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 {
+    int read_bytes;
+    int curr_byte = 0;
+
+    
+
     return ERROR;
 }
 
