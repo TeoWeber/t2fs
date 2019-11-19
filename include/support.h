@@ -125,3 +125,15 @@ int alocate_next_free_data_block_to_file_given_file_inode(iNode inode);
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
+
+DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number);
+
+DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD data_number_of_block);
+
+iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i);
+
+int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i);
+
+DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD i);
+
+int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i);

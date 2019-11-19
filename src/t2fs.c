@@ -292,7 +292,12 @@ int sln2(char *linkname, char *filename)
 
 	link_record_ptr->TypeVal = TYPEVAL_LINK;
 
-	// FALTA ALOCAR EXATAMENTE UM BLOCO DE DADOS E...
+	iNode *link_inode_ptr;
+	if ((link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
+		return ERROR;
+
+	if (alocate_next_free_data_block_to_file_given_file_inode(*link_inode_ptr) != SUCCESS)
+		return ERROR;
 
     DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
     
@@ -301,12 +306,7 @@ int sln2(char *linkname, char *filename)
         return INVALID_RECORD_PTR;
     
     strcpy((char *)link_unique_data_block, filename);
-
-	iNode *link_inode_ptr;
-	if ((link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
-		return ERROR;
 	
-	link_inode_ptr->blocksFileSize = 1; // ...VERIFICAR SE ALOCAÇÃO DE BLOCO JÁ ALTERA ISSO
 	link_inode_ptr->bytesFileSize = strlen(filename);
 
 	return SUCCESS;

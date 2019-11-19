@@ -89,16 +89,27 @@ int fill_partition_structure(int partition, int sectors_per_block)
 int reset_bitmaps(int partition)
 {
     if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
+    {
+        closeBitmap2();
         return ERROR;
+    }
 
     for (int i = 0; i < partitions[partition].number_of_inodes; i++)
     {
-        setBitmap2(BITMAP_INODE, i, 0);
+        if (setBitmap2(BITMAP_INODE, i, 0) != SUCCESS)
+        {
+            closeBitmap2();
+            return ERROR;
+        }
     }
 
     for (int i = 0; i < partitions[partition].number_of_data_blocks; i++)
     {
-        setBitmap2(BITMAP_DADOS, i, 0);
+        if (setBitmap2(BITMAP_DADOS, i, 0) != SUCCESS)
+        {
+            closeBitmap2();
+            return ERROR;
+        }
     }
 
     if (closeBitmap2() != SUCCESS)
@@ -121,20 +132,29 @@ void define_empty_inode_from_inode_ptr(iNode *inode_ptr)
 int format_root_dir(int partition)
 {
     if (openBitmap2(partitions[partition].boot_sector) != SUCCESS)
+    {
+        closeBitmap2();
         return ERROR;
+    }
 
     // Setamos inode da raiz como ocupado
     if (setBitmap2(BITMAP_INODE, 0, 1) != SUCCESS)
+    {
+        closeBitmap2();
         return ERROR;
+    }
 
     if (closeBitmap2() != SUCCESS)
         return ERROR;
 
     iNode inode;
-
     define_empty_inode_from_inode_ptr(&inode);
 
-    if((root_dir_inode_ptr = allocate_next_free_inode_given_itself_and_get_ptr(inode)) != INVALID_INODE_PTR)
+    DWORD block_of_inodes_ptr;
+    if (get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(0) == INVALID_INODE_PTR)
+        return ERROR;
+
+    if (write_inode_in_i_th_position_of_block_of_inodes(block_of_inodes_ptr, inode, 0) != SUCCESS)
         return ERROR;
 
     return SUCCESS;
@@ -241,14 +261,108 @@ iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode)
 
 int alocate_next_free_data_block_to_file_given_file_inode(iNode inode)
 {
-    DWORD next_free_block_ptr;
-    if ((next_free_block_ptr = (DWORD)searchBitmap2(BITMAP_DADOS, 0)) != INVALID_PTR);
+    DWORD block_of_data_block_ptrs_capacity = partitions[mounted_partition_index].super_block.blockSize * (DWORD)SECTOR_SIZE / (DWORD)sizeof(DWORD);
 
-    if (inode.blocksFileSize == 0)
+    DWORD max_file_size_in_blocks = (DWORD)2 +
+                                    block_of_data_block_ptrs_capacity +
+                                    block_of_data_block_ptrs_capacity * block_of_data_block_ptrs_capacity;
+
+    if (inode.blocksFileSize >= max_file_size_in_blocks)
+        return ERROR;
+
+    if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
     {
+        closeBitmap2();
+        return ERROR;
+    }
+
+    DWORD next_free_block_ptr;
+    if ((next_free_block_ptr = (DWORD)searchBitmap2(BITMAP_DADOS, 0)) == INVALID_PTR)
+    {
+        closeBitmap2();
+        return ERROR;
+    }
+
+    if (setBitmap2(BITMAP_DADOS, next_free_block_ptr, 1) != SUCCESS)
+    {
+        closeBitmap2();
+        return ERROR;
+    }
+
+    if (inode.blocksFileSize < (DWORD)2)
+    {
+        inode.dataPtr[inode.blocksFileSize] = next_free_block_ptr;
+    }
+    else
+    {
+        if (inode.blocksFileSize < (DWORD)2 + block_of_data_block_ptrs_capacity)
+        {
+            if (inode.blocksFileSize == (DWORD)2)
+            {
+                inode.singleIndPtr = next_free_block_ptr;
+
+                if ((next_free_block_ptr = (DWORD)searchBitmap2(BITMAP_DADOS, 0)) == INVALID_PTR)
+                {
+                    closeBitmap2();
+                    return ERROR;
+                }
+
+                if (setBitmap2(BITMAP_DADOS, next_free_block_ptr, 1) != SUCCESS)
+                {
+                    closeBitmap2();
+                    return ERROR;
+                }
+            }
+
+            if (write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(inode.singleIndPtr, next_free_block_ptr, inode.blocksFileSize - (DWORD)2) != SUCCESS)
+            {
+                closeBitmap2();
+                return ERROR;
+            }
+        }
+        else
+        {
+            if (inode.blocksFileSize == (DWORD)2 + block_of_data_block_ptrs_capacity)
+            {
+                inode.doubleIndPtr = next_free_block_ptr;
+
+                if ((next_free_block_ptr = (DWORD)searchBitmap2(BITMAP_DADOS, 0)) == INVALID_PTR)
+                {
+                    closeBitmap2();
+                    return ERROR;
+                }
+
+                if (setBitmap2(BITMAP_DADOS, next_free_block_ptr, 1) != SUCCESS)
+                {
+                    closeBitmap2();
+                    return ERROR;
+                }
+            }
+
+            DWORD block_of_data_block_ptrs;
+            if ((block_of_data_block_ptrs = read_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(inode.doubleIndPtr,
+                                                                                                               (inode.blocksFileSize - (DWORD)2 - block_of_data_block_ptrs_capacity) /
+                                                                                                                   block_of_data_block_ptrs_capacity)) == INVALID_PTR)
+            {
+                closeBitmap2();
+                return ERROR;
+            }
+
+            if (write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(block_of_data_block_ptrs,
+                                                                                  next_free_block_ptr,
+                                                                                  (inode.blocksFileSize - (DWORD)2 - block_of_data_block_ptrs_capacity) %
+                                                                                      block_of_data_block_ptrs_capacity) != SUCCESS)
+            {
+                closeBitmap2();
+                return ERROR;
+            }
+        }
     }
 
     inode.blocksFileSize++;
+
+    if (closeBitmap2() != SUCCESS)
+        return ERROR;
 
     return SUCCESS;
 }
@@ -259,6 +373,40 @@ int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
 }
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
+{
+    return ERROR;
+}
+
+DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number)
+{
+    return INVALID_PTR;
+}
+
+DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD data_number_of_block)
+{
+    return INVALID_PTR;
+}
+
+// Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
+iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i)
+{
+    return INVALID_INODE_PTR;
+}
+
+// Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
+int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i)
+{
+    return ERROR;
+}
+
+// Convenção de uso: O primeiro ptr de bloco de dados da bloco de ponteiros de blocos de dados é o i-th ptr de blocos de dados, i == 0
+DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD i)
+{
+    return INVALID_PTR;
+}
+
+// Convenção de uso: O primeiro ptr de bloco de dados da bloco de ponteiros de blocos de dados é o i-th ptr de blocos de dados, i == 0
+int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i)
 {
     return ERROR;
 }
