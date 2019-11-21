@@ -593,7 +593,6 @@ void write_block_to_blocknum( DWORD blocknum, char* buffer )
             sector_buffer[i] = buffer[written_bytes];
             written_bytes += 1;
         }
-            
 
         int success = write_sector(sector, sector_buffer);
         if (success == 0)
@@ -613,15 +612,7 @@ int initialize_new_pointer_block()
 
     int i;
     for (i = 0; i < 64; i++)
-    {
-        unsigned char *aux_ptr = (unsigned char*)&new_pointer;
-        int ptr_start = (i%64)*4;
-
-        block_buffer[ptr_start] = aux_ptr[0];
-        block_buffer[ptr_start+1] = aux_ptr[1];
-        block_buffer[ptr_start+2] = aux_ptr[2];
-        block_buffer[ptr_start+3] = aux_ptr[3];
-    }
+      insert_pointer_in_buffer(new_pointer, (i%64)*4, block_buffer);
 
     int new_block_number = searchBitmap2(BITMAP_DADOS, 0);
     if (new_block_number <= 0)
@@ -638,6 +629,49 @@ int initialize_new_pointer_block()
     return new_block_number;
 }
 
+void insert_pointer_in_buffer(DWORD pointer, int starting_pos, unsigned char* buffer)
+{
+  unsigned char *aux_ptr = (unsigned char*)&pointer;
+
+  block_buffer[starting_pos] = aux_ptr[0];
+  block_buffer[starting_pos+1] = aux_ptr[1];
+  block_buffer[starting_pos+2] = aux_ptr[2];
+  block_buffer[starting_pos+3] = aux_ptr[3];
+}
+
+int update_inode_on_disk(int inodenum, iNode inode)
+{
+  SuperBlock super_block = partitions[mounted_partition_index].super_block;
+  int block_size = super_block.blockSize;
+  int super_block_size = super_block.superblockSize;
+  int block_bitmap_size = super_block.freeBlocksBitmapSize;
+  int inode_bitmap_size = super_block.freeInodeBitmapSize;
+
+  int inode_start
+  int inode_disk_area = block_size * ( super_block_size + block_bitmap_size + inode_bitmap_size );
+  int sector = inode_disk_area + inodenum / 8;
+
+  unsigned char sector_buffer[SECTOR_SIZE];
+  int success = read_sector( sector, sector_buffer );
+  if (success != 0)
+    return ERROR;
+
+  inode_start = (inodenum % 8) * 32;
+
+  insert_pointer_in_buffer( inode.blocksFileSize, inode_start, sector_buffer );
+  insert_pointer_in_buffer( inode.bytesFileSize, inode_start+4, sector_buffer );
+  insert_pointer_in_buffer( inode.dataPtr[0], inode_start+8, sector_buffer );
+  insert_pointer_in_buffer( inode.dataPtr[1], inode_start+12, sector_buffer );
+  insert_pointer_in_buffer( inode.singleIndPtr, inode_start+16, sector_buffer );
+  insert_pointer_in_buffer( inode.doubleIndPtr, inode_start+20, sector_buffer );
+
+  success = write_sector( sector, sector_buffer );
+  if (success != 0)
+    return ERROR;
+
+  return SUCCESS;
+}
+
 int write_new_pointer_to_block(int i, DWORD blocknum, DWORD pointer)
 {
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
@@ -649,13 +683,7 @@ int write_new_pointer_to_block(int i, DWORD blocknum, DWORD pointer)
     if (success != 0)
         return ERROR;
 
-    unsigned char *aux_ptr = (unsigned char*)&pointer;
-    int ptr_start = (i%64)*4;
-
-    block_buffer[ptr_start] = aux_ptr[0];
-    block_buffer[ptr_start+1] = aux_ptr[1];
-    block_buffer[ptr_start+2] = aux_ptr[2];
-    block_buffer[ptr_start+3] = aux_ptr[3];
+    insert_pointer_in_buffer(pointer, (i%64)*4, block_buffer);
 
     success = write_sector(sector, block_buffer);
     if (success != 0)
@@ -855,11 +883,11 @@ int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer)
     }
 
     // falta: caso em que é um softlink
-    // falta: atualizar inode no disco
 
     if (curr_ptr > inode.bytesFileSize)
         inode.bytesFileSize = curr_ptr;
-        
+    update_inode_on_disk( inodenum, inode );
+
     return written_bytes;
 }
 

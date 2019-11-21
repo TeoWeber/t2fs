@@ -139,6 +139,10 @@ void write_block_to_blocknum( DWORD blocknum, char* buffer );
 
 int initialize_new_pointer_block();
 
+void insert_pointer_in_buffer(DWORD pointer, int starting_pos, unsigned char* buffer);
+
+int update_inode_on_disk(int inodenum, iNode inode);
+
 int write_new_pointer_to_block(int i, DWORD blocknum, DWORD pointer);
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
