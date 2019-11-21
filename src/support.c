@@ -216,6 +216,39 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
     return get_record_ptr_from_file_given_filename((char *)unique_data_block);
 }
 
+DWORD get_i_from_filename_first_invalid_record()
+{
+    // Percorremos todas entradas em busca de uma entrada com nome == filename
+    boolean hitFlag = false;
+    Record *record_ptr;
+    int i;
+
+    for (i = 0; (record_ptr = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++);
+
+    return (DWORD)i;
+}
+
+DWORD get_free_inode_number_in_partition(Partition *partition)
+{
+    DWORD inode;
+    openBitmap2(partition->boot_sector);
+    inode = searchBitmap2(BITMAP_INODE, 0); // Procura por uma posição vazia no Bitmap e retorna sua posição
+    
+    if(inode == 0){
+        printf("There's no space in this partition.");
+        closeBitmap2();
+        return ERROR;
+    }
+
+    if(inode < 0){
+        closeBitmap2();
+        return ERROR; // Numero Negativo
+    }
+
+    closeBitmap2();
+    return inode;
+}
+
 // Convenção de uso: O primeiro registro da root dir é o i-th registro, i == 0
 Record *get_i_th_record_ptr_from_root_dir(DWORD i)
 {
