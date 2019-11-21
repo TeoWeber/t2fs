@@ -8,7 +8,7 @@
 | int mount (int partition) | Fred | Sim |
 | int umount (void) | Fred | Sim |
 | int identify2 (char *name, int size) | Fred | Sim |
-| FILE2 create2 (char *filename) | Teo | Não |
+| FILE2 create2 (char *filename) | Teo (ft. Fred) | Falta implementar funções aux. |
 | int delete2 (char *name) | Fred (ft. Teo) | Falta implementar funções aux. |
 | FILE2 open2 (char *name) | Fred | Falta implementar funções aux. |
 | int close2 (FILE2 handle) | Fred | Sim |

@@ -107,30 +107,28 @@ FILE2 create2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return INVALID_HANDLE;
 
-	iNode *new_inode_ptr;
-	DWORD new_inode_id;
-	Record *record_ptr;
-
-	record_ptr = get_record_ptr_from_file_given_filename(filename);
+	Record *record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (record_ptr == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
 	{
-		DWORD record_id = get_i_from_filename_first_invalid_record();
+		DWORD new_record_id = get_i_from_first_invalid_record();
 		DWORD new_inode_id = get_free_inode_number_in_partition();
 
-		memset((*record_ptr).name, '\0', sizeof((*record_ptr).name));		   // Enche todos os espaços vazios de '\0'
-		strncpy((*record_ptr).name, filename, sizeof((*record_ptr).name) - 1); // Coloca o nome sobre os '\0'
-		(*record_ptr).TypeVal = TYPEVAL_REGULAR;
-		(*record_ptr).inodeNumber = new_inode_id;
+		Record new_record;
+		memset(new_record.name, '\0', sizeof((*record_ptr).name));		   // Enche todos os espaços vazios de '\0'
+		strncpy(new_record.name, filename, sizeof((*record_ptr).name) - 1); // Coloca o nome sobre os '\0'
+		new_record.TypeVal = TYPEVAL_REGULAR;
+		new_record.inodeNumber = new_inode_id;
 
-		define_empty_inode_from_inode_ptr(new_inode_ptr);
-		new_inode_ptr->RefCounter = 1;
+		iNode new_inode;
+		define_empty_inode_from_inode_ptr(&new_inode);
+		new_inode.RefCounter = 1;
 
 		open_files[handle].record = *record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
 		open_files[handle].handle_used = HANDLE_USED;
 
-		update_inode_on_disk(new_inode_id, *new_inode_ptr);
-		update_record_on_disk(record_id, record_ptr);
+		update_inode_on_disk(new_inode_id, new_inode);
+		update_record_on_disk(new_record_id, new_record);
 	}
 	else
 	{

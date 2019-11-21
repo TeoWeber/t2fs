@@ -216,7 +216,7 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
     return get_record_ptr_from_file_given_filename((char *)unique_data_block);
 }
 
-DWORD get_i_from_filename_first_invalid_record()
+DWORD get_i_from_first_invalid_record()
 {
     // Percorremos todas entradas em busca de uma entrada com nome == filename
     boolean hitFlag = false;
