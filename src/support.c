@@ -228,22 +228,19 @@ DWORD get_i_from_filename_first_invalid_record()
     return (DWORD)i;
 }
 
-DWORD get_free_inode_number_in_partition(Partition *partition)
+DWORD get_free_inode_number_in_partition()
 {
     DWORD inode;
-    openBitmap2(partition->boot_sector);
+    openBitmap2(partitions[mounted_partition_index].boot_sector);
     inode = searchBitmap2(BITMAP_INODE, 0); // Procura por uma posição vazia no Bitmap e retorna sua posição
     
-    if(inode == 0){
+    if(inode <= 0){ // Sem espaço livre!
         printf("There's no space in this partition.");
         closeBitmap2();
         return ERROR;
     }
 
-    if(inode < 0){
-        closeBitmap2();
-        return ERROR; // Numero Negativo
-    }
+    setBitmap2(BITMAP_INODE,inode,1); // Ativa este inode no Bitmap da partição
 
     closeBitmap2();
     return inode;
