@@ -147,12 +147,22 @@ Função:	Função usada para remover (apagar) um arquivo do disco.
 -----------------------------------------------------------------------------*/
 int delete2(char *filename)
 {
+{
 	initialize_file_system();
 
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
-	return ERROR;
+	Record *record_ptr;
+	record_ptr = get_record_ptr_from_file_given_filename(filename);
+	if (record_ptr == INVALID_RECORD_PTR)
+		return ERROR;
+
+	if (record_ptr->TypeVal = TYPEVAL_INVALIDO)
+		return ERROR;
+
+	record_ptr->TypeVal = TYPEVAL_INVALIDO;
+	return SUCCESS;
 }
 
 /*-----------------------------------------------------------------------------
@@ -173,6 +183,9 @@ FILE2 open2(char *filename)
 	record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (record_ptr == INVALID_RECORD_PTR)
 		return INVALID_HANDLE;
+
+	if (record_ptr->TypeVal = TYPEVAL_INVALIDO)
+		return ERROR;
 	
 	open_files[handle].record = *record_ptr;
 
@@ -320,6 +333,9 @@ int sln2(char *linkname, char *filename)
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
+	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
+		return ERROR;
+
 	if (create2(linkname) != SUCCESS)
 		return ERROR;
 
@@ -364,6 +380,9 @@ int hln2(char *linkname, char *filename)
 	Record *ref_record_ptr;
 	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (ref_record_ptr == INVALID_RECORD_PTR)
+		return ERROR;
+
+	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
 		return ERROR;
 
 	if (create2(linkname) != SUCCESS)
