@@ -921,3 +921,8 @@ int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD bloc
 {
     return ERROR;
 }
+
+int update_record_on_disk(DWORD record_id, Record record_ptr);
+{
+    return ERROR;   
+}
