@@ -162,7 +162,7 @@ int delete2(char *filename)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Função que abre um arquivo existente no disco.
+Função:	Função que abre um arquivo existente no disco. 
 -----------------------------------------------------------------------------*/
 FILE2 open2(char *filename)
 {
