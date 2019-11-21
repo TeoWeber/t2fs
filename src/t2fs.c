@@ -107,10 +107,24 @@ FILE2 create2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return INVALID_HANDLE;
 
+	
+
 	Record *record_ptr;
+	iNode finode;
+
 	record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if ( record_ptr == INVALID_RECORD_PTR )
 	{
+		DWORD i = get_i_from_first_invalid_record();
+		*record_ptr.TypeVal = TYPEVAL_REGULAR;
+		strcpy(*record_ptr.name, filename);
+
+		finode.blocksFileSize = 0;
+		finode.bytesFileSize = 0;
+		finode.RefCounter = 1;
+
+
+
 		open_files[handle].record = *record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
 		open_files[handle].handle_used = HANDLE_USED;
