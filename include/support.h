@@ -129,7 +129,17 @@ iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode);
 
 int alocate_next_free_data_block_to_file_given_file_inode(iNode inode);
 
+void retrieve_pointers_from_block(DWORD blocknum, DWORD* ptrs);
+
+int read_block_from_blocknum( int ptr, int blocknum, int bytes, char* buffer );
+
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
+
+void write_block_to_blocknum( DWORD blocknum, char* buffer );
+
+int initialize_new_pointer_block();
+
+int write_new_pointer_to_block(int i, DWORD blocknum, DWORD pointer);
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
 

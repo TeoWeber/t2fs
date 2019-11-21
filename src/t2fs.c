@@ -116,8 +116,8 @@ FILE2 create2(char *filename)
 	if ( record_ptr == INVALID_RECORD_PTR )
 	{
 		DWORD i = get_i_from_first_invalid_record();
-		*record_ptr.TypeVal = TYPEVAL_REGULAR;
-		strcpy(*record_ptr.name, filename);
+		(*record_ptr).TypeVal = TYPEVAL_REGULAR;
+		strcpy((*record_ptr).name, filename);
 
 		finode.blocksFileSize = 0;
 		finode.bytesFileSize = 0;
@@ -238,8 +238,6 @@ int write2(FILE2 handle, char *buffer, int size)
 		return ERROR;
 
 	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, *inode_ptr, buffer);
-	if (bytes_written == ERROR)
-		return ERROR;
 
 	file.current_ptr += bytes_written;
 	open_files[handle] = file;
