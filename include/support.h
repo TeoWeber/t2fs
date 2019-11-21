@@ -67,7 +67,7 @@ typedef struct t_open_file
 #define PTR_START_POSITION (DWORD)0
 #define HANDLE_USED true
 #define HANDLE_UNUSED false
-#define INVALID_HANDLE (FILE2)-1
+#define INVALID_HANDLE (FILE2) - 1
 #define INVALID_RECORD_PTR (Record *)0
 
 // constantes de partições
@@ -129,21 +129,21 @@ iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode);
 
 int alocate_next_free_data_block_to_file_given_file_inode(iNode inode);
 
-void retrieve_pointers_from_block(DWORD blocknum, DWORD* ptrs);
+void retrieve_ptrs_from_block(DWORD block_number, DWORD *ptrs);
 
-int read_block_from_blocknum( int ptr, int blocknum, int bytes, char* buffer );
+int read_block_from_block_number(int ptr, int block_number, int bytes, char *buffer);
 
 int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
-void write_block_to_blocknum( DWORD blocknum, char* buffer );
+void write_block_to_block_number(DWORD block_number, char *buffer);
 
-int initialize_new_pointer_block();
+int initialize_new_ptr_block();
 
-void insert_pointer_in_buffer(DWORD pointer, int starting_pos, unsigned char* buffer);
+void insert_ptr_in_buffer(DWORD ptr, int starting_pos, unsigned char *buffer);
 
-int update_inode_on_disk(int inodenum, iNode inode);
+int update_inode_on_disk(int inode_number, iNode inode);
 
-int write_new_pointer_to_block(int i, DWORD blocknum, DWORD pointer);
+int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr);
 
 int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
 

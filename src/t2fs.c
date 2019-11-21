@@ -26,11 +26,11 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 
 	//if (partition == mounted_partition_index) // Partição a ser formatada está montada, devemos demontá-la antes então. (certo?)
-		//umount(partition);
+	//umount(partition);
 
 	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
-		
+
 	if (write_sector(partitions[partition].boot_sector, (unsigned char *)&partitions[partition].super_block) != SUCCESS) // Escrevemos o superbloco no primeiro setor da partição a ser formatada
 		return ERROR;
 
@@ -107,30 +107,29 @@ FILE2 create2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return INVALID_HANDLE;
 
-	iNode new_inode;
+	iNode *new_inode_ptr;
 	DWORD new_inode_id;
 	Record *record_ptr;
 
 	record_ptr = get_record_ptr_from_file_given_filename(filename);
-	if ( record_ptr == INVALID_RECORD_PTR ) // Não tinha ninguém com esse filename
+	if (record_ptr == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
 	{
 		DWORD record_id = get_i_from_filename_first_invalid_record();
 		DWORD new_inode_id = get_free_inode_number_in_partition();
 
-		memset((*record_ptr).name, '\0', sizeof((*record_ptr).name)); // Enche todos os espaços vazios de '\0' 
+		memset((*record_ptr).name, '\0', sizeof((*record_ptr).name));		   // Enche todos os espaços vazios de '\0'
 		strncpy((*record_ptr).name, filename, sizeof((*record_ptr).name) - 1); // Coloca o nome sobre os '\0'
 		(*record_ptr).TypeVal = TYPEVAL_REGULAR;
 		(*record_ptr).inodeNumber = new_inode_id;
 
-		new_inode.blocksFileSize = 0;
-		new_inode.bytesFileSize = 0;
-		new_inode.RefCounter = 1;
+		define_empty_inode_from_inode_ptr(new_inode_ptr);
+		new_inode_ptr->RefCounter = 1;
 
 		open_files[handle].record = *record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
 		open_files[handle].handle_used = HANDLE_USED;
 
-		update_inode_on_disk(new_inode_id, new_inode);
+		update_inode_on_disk(new_inode_id, *new_inode_ptr);
 		update_record_on_disk(record_id, record_ptr);
 	}
 	else
@@ -138,7 +137,7 @@ FILE2 create2(char *filename)
 		delete2(filename);
 		create2(filename);
 	}
-	
+
 	return handle;
 }
 
@@ -146,7 +145,6 @@ FILE2 create2(char *filename)
 Função:	Função usada para remover (apagar) um arquivo do disco.
 -----------------------------------------------------------------------------*/
 int delete2(char *filename)
-{
 {
 	initialize_file_system();
 
@@ -186,7 +184,7 @@ FILE2 open2(char *filename)
 
 	if (record_ptr->TypeVal = TYPEVAL_INVALIDO)
 		return ERROR;
-	
+
 	open_files[handle].record = *record_ptr;
 
 	open_files[handle].current_ptr = PTR_START_POSITION;
@@ -269,7 +267,7 @@ int opendir2(void)
 
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
-	
+
 	if (is_the_root_dir_open)
 		return ERROR;
 
@@ -292,7 +290,7 @@ int readdir2(DIRENT2 *dentry)
 	Record *record_ptr;
 	if ((record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr)) == INVALID_RECORD_PTR)
 		return ERROR;
-	
+
 	iNode *inode_ptr;
 	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
@@ -354,14 +352,14 @@ int sln2(char *linkname, char *filename)
 	if (alocate_next_free_data_block_to_file_given_file_inode(*link_inode_ptr) != SUCCESS)
 		return ERROR;
 
-    DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
-    
-    unsigned char link_unique_data_block[SECTOR_SIZE];
-    if (read_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
-        return INVALID_RECORD_PTR;
-    
-    strcpy((char *)link_unique_data_block, filename);
-	
+	DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
+
+	unsigned char link_unique_data_block[SECTOR_SIZE];
+	if (read_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
+		return INVALID_RECORD_PTR;
+
+	strcpy((char *)link_unique_data_block, filename);
+
 	link_inode_ptr->bytesFileSize = strlen(filename);
 
 	return SUCCESS;
