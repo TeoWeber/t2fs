@@ -626,7 +626,7 @@ int initialize_new_pointer_block()
     return new_block_number;
 }
 
-void insert_pointer_in_buffer(DWORD pointer, int starting_pos, unsigned char* buffer)
+void insert_pointer_in_buffer(DWORD pointer, int starting_pos, unsigned char* block_buffer)
 {
   unsigned char *aux_ptr = (unsigned char*)&pointer;
 
@@ -644,7 +644,7 @@ int update_inode_on_disk(int inodenum, iNode inode)
   int block_bitmap_size = super_block.freeBlocksBitmapSize;
   int inode_bitmap_size = super_block.freeInodeBitmapSize;
 
-  int inode_start
+  int inode_start;
   int inode_disk_area = block_size * ( super_block_size + block_bitmap_size + inode_bitmap_size );
   int sector = inode_disk_area + inodenum / 8;
 
@@ -922,7 +922,7 @@ int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD bloc
     return ERROR;
 }
 
-int update_record_on_disk(DWORD record_id, Record record_ptr);
+int update_record_on_disk(DWORD record_id, Record record_ptr)
 {
     return ERROR;   
 }
