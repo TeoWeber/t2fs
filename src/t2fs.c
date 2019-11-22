@@ -323,43 +323,56 @@ int sln2(char *linkname, char *filename)
 {
 	initialize_file_system();
 
+	// Se não existir partição montada: erro.
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
+	// Verifica se existe o arquivo que o softlink vai referenciar. Caso não exista: erro.
 	Record *ref_record_ptr;
 	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
+	// Se o arquivo foi deletado: erro.
 	if (ref_record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
+	// Criamos o arquivo de link então. Se falhar: erro.
 	if (create2(linkname) != SUCCESS)
 		return ERROR;
 
+	// Puxamos o ponteiro pro registro do arquivo criado pela deep web, já que a create não devolve ele. Se não achar: uehh, erro.
 	Record *link_record_ptr;
 	link_record_ptr = get_record_ptr_from_file_given_filename(linkname);
 	if (link_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
+	// Definimos o tipo do registro como soflink.
 	link_record_ptr->TypeVal = TYPEVAL_LINK;
 
+	// Pegamos o inode, sabendo o número dele. Isso se não der erro.
 	iNode *link_inode_ptr;
 	link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber);
 	if (link_inode_ptr == INVALID_INODE_PTR)
 		return ERROR;
 
+	// Alocamos um bloco de dados. (e definimos como 1 tamanho do arquivo em blocos)
 	if (alocate_next_free_data_block_to_file_given_file_inode(*link_inode_ptr) != SUCCESS)
 		return ERROR;
 
+	// Pegamos o ponteiro pro primeiro bloco de dados do arquivo (o que foi alocado agora).
 	DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
 
+	// Criamos um bloco vazio. ERA PARA SER UM BLOCO, MAS É UM SETOR
 	unsigned char link_unique_data_block[SECTOR_SIZE];
-	if (read_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
+    memset(link_unique_data_block, '\0', SECTOR_SIZE);
+
+	// Escrevemos no bloco vazio, o nome do arquivo que o softlink vai referenciar. MAS ESTAMOS ESCREVENDO UM SETOR
+	strcpy((char *)link_unique_data_block, filename);
+	if (write_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
 		return INVALID_RECORD_PTR;
 
-	strcpy((char *)link_unique_data_block, filename);
-
+	// Colocamos no tamanho do soflink em bytes, o tamanho do nome do arquivo referenciado em bytes.
 	link_inode_ptr->bytesFileSize = strlen(filename);
 
 	return SUCCESS;
