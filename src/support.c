@@ -857,17 +857,6 @@ DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD ino
     return INVALID_PTR;
 }
 
-DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD data_number_of_block)
-{
-    return INVALID_PTR;
-}
-
-// Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
-iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i)
-{
-    return INVALID_INODE_PTR;
-}
-
 // Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
 int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i)
 {
@@ -876,11 +865,6 @@ int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, i
 
 // Convenção de uso: O primeiro ptr de bloco de dados da bloco de ponteiros de blocos de dados é o i-th ptr de blocos de dados, i == 0
 int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i)
-{
-    return ERROR;
-}
-
-int update_record_on_disk(DWORD record_id, Record record_ptr)
 {
     return ERROR;
 }

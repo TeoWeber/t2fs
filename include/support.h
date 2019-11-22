@@ -143,17 +143,11 @@ int initialize_new_ptr_block();
 
 void insert_ptr_in_buffer(DWORD ptr, int starting_pos, unsigned char *buffer);
 
-int update_inode_on_disk(int inode_number, iNode inode);
-
 int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr);
 
 int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer);
 
 DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number);
-
-DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD data_number_of_block);
-
-iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i);
 
 int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i);
 
