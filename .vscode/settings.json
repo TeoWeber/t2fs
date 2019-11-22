@@ -2,6 +2,8 @@
     "files.associations": {
         "t2fs.h": "c",
         "t2disk.h": "c",
-        "support.h": "c"
+        "support.h": "c",
+        "support.h\u0000port.h": "c",
+        "support.h\u0000pport.h": "c"
     }
 }

@@ -79,8 +79,8 @@ int fill_partition_structure(int partition, int sectors_per_block)
                                                              (DWORD)10);
     remainingBlocks -= (DWORD)partitions[partition].super_block.inodeAreaSize;
 
-    partitions[partition].super_block.freeInodeBitmapSize = (partitions[partition].super_block.inodeAreaSize + (WORD)(8 * sizeof(iNode) - 1)) /
-                                                            (WORD)(8 * sizeof(iNode));
+    partitions[partition].super_block.freeInodeBitmapSize = (partitions[partition].super_block.inodeAreaSize + (WORD)(8 * sizeof(t2fs_inode) - 1)) /
+                                                            (WORD)(8 * sizeof(t2fs_inode));
     remainingBlocks -= (DWORD)partitions[partition].super_block.freeInodeBitmapSize;
 
     // Deveríamos testar se a seguinte operação não dá casting overflow.
@@ -91,7 +91,7 @@ int fill_partition_structure(int partition, int sectors_per_block)
 
     partitions[partition].super_block.Checksum = checksum(partition);
 
-    partitions[partition].number_of_inodes = partitions[partition].super_block.inodeAreaSize * sectors_per_block * SECTOR_SIZE / sizeof(iNode);
+    partitions[partition].number_of_inodes = partitions[partition].super_block.inodeAreaSize * sectors_per_block * SECTOR_SIZE / sizeof(t2fs_inode);
 
     partitions[partition].number_of_data_blocks = remainingBlocks;
 
@@ -130,7 +130,7 @@ int reset_bitmaps(int partition)
     return SUCCESS;
 }
 
-void define_empty_inode_from_inode_ptr(iNode *inode_ptr)
+void define_empty_inode_from_inode_ptr(t2fs_inode *inode_ptr)
 {
     inode_ptr->blocksFileSize = (DWORD)0;
     inode_ptr->bytesFileSize = (DWORD)0;
@@ -159,7 +159,7 @@ int format_root_dir(int partition)
     if (closeBitmap2() != SUCCESS)
         return ERROR;
 
-    iNode inode;
+    t2fs_inode inode;
     define_empty_inode_from_inode_ptr(&inode);
 
     DWORD block_of_inodes_ptr;
@@ -193,10 +193,10 @@ boolean is_a_handle_used(FILE2 handle)
     return true;
 }
 
-Record *get_record_ptr_from_file_given_filename(char *filename)
+t2fs_record *get_record_ptr_from_file_given_filename(char *filename)
 {
     // Percorremos todas entradas em busca de uma entrada com nome == filename
-    Record *record_ptr;
+    t2fs_record *record_ptr;
     for (int i = 0; 1; i++)
     {
         record_ptr = get_i_th_record_ptr_from_root_dir(i);
@@ -229,7 +229,7 @@ DWORD get_i_from_first_invalid_record()
 {
     // Percorremos todas entradas em busca de uma entrada com nome == filename
     boolean hitFlag = false;
-    Record *record_ptr;
+    t2fs_record *record_ptr;
     int i;
 
     for (i = 0; 1; i++)
@@ -262,24 +262,24 @@ DWORD get_free_inode_number_in_partition()
 }
 
 // Convenção de uso: O primeiro registro da root dir é o i-th registro, i == 0
-Record *get_i_th_record_ptr_from_root_dir(DWORD i)
+t2fs_record *get_i_th_record_ptr_from_root_dir(DWORD i)
 {
     DWORD number_of_records_per_data_blocks = (DWORD)partitions[mounted_partition_index].super_block.blockSize *
                                               SECTOR_SIZE /
-                                              (DWORD)sizeof(Record);
+                                              (DWORD)sizeof(t2fs_record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
     unsigned char data_block[SECTOR_SIZE];
     if (read_sector(data_block_ptr, data_block) != SUCCESS)
         return INVALID_RECORD_PTR;
 
-    return &((Record *)data_block)[i % number_of_records_per_data_blocks];
+    return &((t2fs_record *)data_block)[i % number_of_records_per_data_blocks];
 }
 
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number)
 {
-    iNode *inode;
+    t2fs_inode *inode;
     inode = get_inode_ptr_given_inode_number(inode_number);
     if (inode == INVALID_INODE_PTR)
         return INVALID_INODE_PTR;
@@ -329,9 +329,9 @@ FILE2 get_first_unused_handle()
     return INVALID_HANDLE;
 }
 
-iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
+t2fs_inode *get_inode_ptr_given_inode_number(DWORD inode_number)
 {
-    SuperBlock super_block = partitions[mounted_partition_index].super_block;
+    t2fs_superbloco super_block = partitions[mounted_partition_index].super_block;
     int block_size = super_block.blockSize;
     int super_block_size = super_block.superblockSize;
     int block_bitmap_size = super_block.freeBlocksBitmapSize;
@@ -348,7 +348,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     if (read_sector(sector, sector_buffer) != 0)
         return INVALID_INODE_PTR;
 
-    iNode *inode_ptr;
+    t2fs_inode *inode_ptr;
     inode_start = (inode_number % 8) * 32;
     inode_ptr->blocksFileSize = *((DWORD*) (sector_buffer + inode_start + 0));
     inode_ptr->bytesFileSize = *((DWORD*) (sector_buffer + inode_start + 4));
@@ -362,7 +362,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     return inode_ptr;
 }
 
-int alocate_next_free_data_block_to_file_given_file_inode(iNode inode)
+int alocate_next_free_data_block_to_file_given_file_inode(t2fs_inode inode)
 {
     DWORD block_of_data_block_ptrs_capacity = partitions[mounted_partition_index].super_block.blockSize * (DWORD)SECTOR_SIZE / (DWORD)sizeof(DWORD);
 
@@ -520,7 +520,7 @@ int read_block_from_block_number(int ptr, int block_number, int bytes, char *buf
     return read_bytes;
 }
 
-int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
+int read_n_bytes_from_file(DWORD ptr, int n, t2fs_inode inode, char *buffer)
 {
     int read_bytes = 0, remaining_bytes = n;
     int curr_byte = 0;
@@ -706,9 +706,9 @@ void insert_ptr_in_buffer(DWORD ptr, int starting_pos, unsigned char *block_buff
     block_buffer[starting_pos + 3] = aux_ptr[3];
 }
 
-int update_inode_on_disk(int inode_number, iNode inode)
+int update_inode_on_disk(int inode_number, t2fs_inode inode)
 {
-    SuperBlock super_block = partitions[mounted_partition_index].super_block;
+    t2fs_superbloco super_block = partitions[mounted_partition_index].super_block;
     int block_size = super_block.blockSize;
     int super_block_size = super_block.superblockSize;
     int block_bitmap_size = super_block.freeBlocksBitmapSize;
@@ -761,7 +761,7 @@ int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr)
 
 int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer)
 {
-    iNode *inode;
+    t2fs_inode *inode;
 	if ((inode = get_inode_ptr_given_inode_number(inodenum)) == INVALID_INODE_PTR)
 		return ERROR;
 
@@ -971,13 +971,13 @@ DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD d
 }
 
 // Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
-iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i)
+t2fs_inode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i)
 {
     return INVALID_INODE_PTR;
 }
 
 // Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
-int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i)
+int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, t2fs_inode inode, DWORD i)
 {
     return ERROR;
 }
@@ -988,17 +988,17 @@ int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD bloc
     return ERROR;
 }
 
-int update_record_on_disk(DWORD record_id, Record record_ptr)
+int update_record_on_disk(DWORD record_id, t2fs_record record_ptr)
 {
     return ERROR;
 }
 
-boolean is_used_record_ptr(Record *record_ptr)
+boolean is_used_record_ptr(t2fs_record *record_ptr)
 {
-    char emptyRecord[sizeof(Record)];
-    memset(emptyRecord, '\0', sizeof(Record));
+    char emptyt2fs_record[sizeof(t2fs_record)];
+    memset(emptyt2fs_record, '\0', sizeof(t2fs_record));
 
-    if (strcmp((char *) record_ptr, (char *) emptyRecord) == 0)
+    if (strcmp((char *) record_ptr, (char *) emptyt2fs_record) == 0)
         return false;
     else
         return true;
@@ -1015,7 +1015,7 @@ int ghost_create2(char *filename)
 	{
 		DWORD new_inode_id = get_free_inode_number_in_partition();
 
-		iNode new_inode;
+		t2fs_inode new_inode;
 		define_empty_inode_from_inode_ptr(&new_inode);
 		new_inode.RefCounter = 1;
 
@@ -1023,7 +1023,7 @@ int ghost_create2(char *filename)
 
 		DWORD new_record_id = get_i_from_first_invalid_record();
 
-		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
+		t2fs_record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
 		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
 		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
 		new_record_ptr->TypeVal = TYPEVAL_REGULAR;

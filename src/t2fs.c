@@ -117,7 +117,7 @@ FILE2 create2(char *filename)
 	{
 		DWORD new_inode_id = get_free_inode_number_in_partition();
 
-		iNode new_inode;
+		t2fs_inode new_inode;
 		define_empty_inode_from_inode_ptr(&new_inode);
 		new_inode.RefCounter = 1;
 
@@ -125,7 +125,7 @@ FILE2 create2(char *filename)
 
 		DWORD new_record_id = get_i_from_first_invalid_record();
 
-		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
+		t2fs_record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
 		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
 		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
 		new_record_ptr->TypeVal = TYPEVAL_REGULAR;
@@ -155,7 +155,7 @@ int delete2(char *filename)
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
-	Record *record_ptr;
+	t2fs_record *record_ptr;
 	record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
@@ -181,7 +181,7 @@ FILE2 open2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return INVALID_HANDLE;
 
-	Record *record_ptr;
+	t2fs_record *record_ptr;
 	record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (record_ptr == INVALID_RECORD_PTR)
 		return INVALID_HANDLE;
@@ -219,9 +219,9 @@ int read2(FILE2 handle, char *buffer, int size)
 		return ERROR;
 
 	OpenFile file = open_files[handle];
-	Record record = file.record;
+	t2fs_record record = file.record;
 
-	iNode *inode_ptr;
+	t2fs_inode *inode_ptr;
 	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
@@ -251,7 +251,7 @@ int write2(FILE2 handle, char *buffer, int size)
 		return ERROR;
 
 	OpenFile file = open_files[handle];
-	Record record = file.record;
+	t2fs_record record = file.record;
 
 	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, record.inodeNumber, buffer);
 	if (bytes_written == ERROR)
@@ -289,12 +289,12 @@ int readdir2(DIRENT2 *dentry)
 	if (!is_the_root_dir_open)
 		return ERROR;
 
-	Record *record_ptr;
+	t2fs_record *record_ptr;
 	record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr);
 	if (!is_used_record_ptr(record_ptr))
 		return ERROR;
 
-	iNode *inode_ptr;
+	t2fs_inode *inode_ptr;
 	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
@@ -331,7 +331,7 @@ int sln2(char *linkname, char *filename)
 		return ERROR;
 
 	// Verifica se existe o arquivo que o softlink vai referenciar. Caso não exista: erro.
-	Record *ref_record_ptr;
+	t2fs_record *ref_record_ptr;
 	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
@@ -345,7 +345,7 @@ int sln2(char *linkname, char *filename)
 		return ERROR;
 
 	// Puxamos o ponteiro pro registro do arquivo criado pela deep web, já que a create não devolve ele. Se não achar: uehh, erro.
-	Record *link_record_ptr;
+	t2fs_record *link_record_ptr;
 	link_record_ptr = get_record_ptr_from_file_given_filename(linkname);
 	if (link_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
@@ -354,7 +354,7 @@ int sln2(char *linkname, char *filename)
 	link_record_ptr->TypeVal = TYPEVAL_LINK;
 
 	// Pegamos o inode, sabendo o número dele. Isso se não der erro.
-	iNode *link_inode_ptr;
+	t2fs_inode *link_inode_ptr;
 	link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber);
 	if (link_inode_ptr == INVALID_INODE_PTR)
 		return ERROR;
@@ -391,7 +391,7 @@ int hln2(char *linkname, char *filename)
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
 		return ERROR;
 
-	Record *ref_record_ptr;
+	t2fs_record *ref_record_ptr;
 	ref_record_ptr = get_record_ptr_from_file_given_filename(filename);
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
@@ -402,7 +402,7 @@ int hln2(char *linkname, char *filename)
 	if (ghost_create2(linkname) != SUCCESS)
 		return ERROR;
 
-	Record *link_record_ptr;
+	t2fs_record *link_record_ptr;
 	link_record_ptr = get_record_ptr_from_file_given_filename(linkname);
 	if (link_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
@@ -410,7 +410,7 @@ int hln2(char *linkname, char *filename)
 	link_record_ptr->TypeVal = ref_record_ptr->TypeVal;
 	link_record_ptr->inodeNumber = ref_record_ptr->inodeNumber;
 
-	iNode *inode_ptr;
+	t2fs_inode *inode_ptr;
 	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
 		return ERROR;
 
