@@ -356,25 +356,10 @@ int sln2(char *linkname, char *filename)
 	if (link_inode_ptr == INVALID_INODE_PTR)
 		return ERROR;
 
-	// Alocamos um bloco de dados. (e definimos como 1 tamanho do arquivo em blocos)
-	if (alocate_next_free_data_block_to_file_given_file_inode(*link_inode_ptr) != SUCCESS)
+	int bytes_written = write_n_bytes_to_file(0, strlen(filename), link_record_ptr->inodeNumber, filename);
+	if (bytes_written == ERROR)
 		return ERROR;
-
-	// Pegamos o ponteiro pro primeiro bloco de dados do arquivo (o que foi alocado agora).
-	DWORD link_unique_data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(0, link_record_ptr->inodeNumber);
-
-	// Criamos um bloco vazio. ERA PARA SER UM BLOCO, MAS É UM SETOR
-	unsigned char link_unique_data_block[SECTOR_SIZE];
-    memset(link_unique_data_block, '\0', SECTOR_SIZE);
-
-	// Escrevemos no bloco vazio, o nome do arquivo que o softlink vai referenciar. MAS ESTAMOS ESCREVENDO UM SETOR
-	strcpy((char *)link_unique_data_block, filename);
-	if (write_sector(link_unique_data_block_ptr, link_unique_data_block) != SUCCESS)
-		return INVALID_RECORD_PTR;
-
-	// Colocamos no tamanho do soflink em bytes, o tamanho do nome do arquivo referenciado em bytes.
-	link_inode_ptr->bytesFileSize = strlen(filename);
-
+		
 	return SUCCESS;
 }
 
