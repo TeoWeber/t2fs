@@ -157,7 +157,7 @@ int delete2(char *filename)
 	if (record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
-	if (record_ptr->TypeVal = TYPEVAL_INVALIDO)
+	if (record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
 	record_ptr->TypeVal = TYPEVAL_INVALIDO;
@@ -183,7 +183,7 @@ FILE2 open2(char *filename)
 	if (record_ptr == INVALID_RECORD_PTR)
 		return INVALID_HANDLE;
 
-	if (record_ptr->TypeVal = TYPEVAL_INVALIDO)
+	if (record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
 	open_files[handle].record = *record_ptr;
@@ -250,11 +250,9 @@ int write2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
+	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, record.inodeNumber, buffer);
+	if (bytes_written == ERROR)
 		return ERROR;
-
-	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, *inode_ptr, buffer);
 
 	file.current_ptr += bytes_written;
 	open_files[handle] = file;
@@ -333,7 +331,7 @@ int sln2(char *linkname, char *filename)
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
-	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
+	if (ref_record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
 	if (create2(linkname) != SUCCESS)

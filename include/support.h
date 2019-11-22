@@ -85,7 +85,7 @@ typedef struct t_open_file
 #define TYPEVAL_REGULAR 0x01
 #define TYPEVAL_LINK 0x02
 
-boolean file_system_initialized = false;
+boolean file_system_initialized = 0;
 
 MBR mbr;
 
@@ -147,7 +147,7 @@ int update_inode_on_disk(int inode_number, iNode inode);
 
 int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr);
 
-int write_n_bytes_to_file(DWORD ptr, int n, iNode inode, char *buffer);
+int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer);
 
 DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number);
 
