@@ -147,14 +147,6 @@ int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr);
 
 int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer);
 
-DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number);
-
-int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i);
-
-DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD i);
-
-int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i);
-
 boolean is_used_record_ptr(Record *record_ptr);
 
 int ghost_create2(char *filename);

@@ -162,12 +162,7 @@ int format_root_dir(int partition)
     iNode inode;
     define_empty_inode_from_inode_ptr(&inode);
 
-    DWORD block_of_inodes_ptr;
-    if (get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(0) == INVALID_INODE_PTR)
-        return ERROR;
-
-    if (write_inode_in_i_th_position_of_block_of_inodes(block_of_inodes_ptr, inode, 0) != SUCCESS)
-        return ERROR;
+    update_inode_on_disk(0, inode);
 
     return SUCCESS;
 }
@@ -850,23 +845,6 @@ int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer)
     update_inode_on_disk(inodenum, *inode);
 
     return written_bytes;
-}
-
-DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD inode_number)
-{
-    return INVALID_PTR;
-}
-
-// Convenção de uso: O primeiro inode do bloco de inodes é o i-th inode, i == 0
-int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i)
-{
-    return ERROR;
-}
-
-// Convenção de uso: O primeiro ptr de bloco de dados da bloco de ponteiros de blocos de dados é o i-th ptr de blocos de dados, i == 0
-int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i)
-{
-    return ERROR;
 }
 
 boolean is_used_record_ptr(Record *record_ptr)
