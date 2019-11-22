@@ -1,4 +1,4 @@
-#include "../include/t2fs.h"
+#include "t2fs.h"
 
 int identify2(char *name, int size)
 {
@@ -359,7 +359,7 @@ int sln2(char *linkname, char *filename)
 	int bytes_written = write_n_bytes_to_file(0, strlen(filename), link_record_ptr->inodeNumber, filename);
 	if (bytes_written == ERROR)
 		return ERROR;
-		
+
 	return SUCCESS;
 }
 
