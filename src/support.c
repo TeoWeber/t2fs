@@ -501,7 +501,7 @@ int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer)
         int i;
         for (i = first; i < ptr_per_block && read_bytes < n; i++)
         {
-            retrieve_ptrs_from_block(curr_block[i], ptrs);
+            retrieve_ptrs_from_block(curr_block + i, ptrs);
 
             first = (curr_block - ptr_per_block - i - 3) - i * ptr_per_block;
             int j;
