@@ -162,3 +162,5 @@ DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD bl
 int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i);
 
 boolean is_used_record_ptr(Record *record_ptr);
+
+int ghost_create2(char *filename);

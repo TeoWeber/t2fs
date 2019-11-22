@@ -1003,3 +1003,37 @@ boolean is_used_record_ptr(Record *record_ptr)
     else
         return true;
 }
+
+int ghost_create2(char *filename)
+{
+	initialize_file_system();
+
+	if (mounted_partition_index == NO_MOUNTED_PARTITION)
+		return ERROR;
+
+	if (get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
+	{
+		DWORD new_inode_id = get_free_inode_number_in_partition();
+
+		iNode new_inode;
+		define_empty_inode_from_inode_ptr(&new_inode);
+		new_inode.RefCounter = 1;
+
+		update_inode_on_disk(new_inode_id, new_inode);
+
+		DWORD new_record_id = get_i_from_first_invalid_record();
+
+		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
+		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
+		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
+		new_record_ptr->TypeVal = TYPEVAL_REGULAR;
+		new_record_ptr->inodeNumber = new_inode_id;
+	}
+	else
+	{
+		delete2(filename);
+		ghost_create2(filename);
+	}
+
+	return SUCCESS;
+}

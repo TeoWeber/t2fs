@@ -104,7 +104,7 @@ FILE2 create2(char *filename)
 	initialize_file_system();
 
 	if (mounted_partition_index == NO_MOUNTED_PARTITION)
-		return ERROR;
+		return INVALID_HANDLE;
 
 	FILE2 handle;
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
@@ -136,7 +136,7 @@ FILE2 create2(char *filename)
 	else
 	{
 		delete2(filename);
-		create2(filename);
+		return create2(filename);
 	}
 
 	return handle;
@@ -338,7 +338,7 @@ int sln2(char *linkname, char *filename)
 		return ERROR;
 
 	// Criamos o arquivo de link então. Se falhar: erro.
-	if (create2(linkname) != SUCCESS)
+	if (ghost_create2(linkname) != SUCCESS)
 		return ERROR;
 
 	// Puxamos o ponteiro pro registro do arquivo criado pela deep web, já que a create não devolve ele. Se não achar: uehh, erro.
@@ -396,7 +396,7 @@ int hln2(char *linkname, char *filename)
 	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
 		return ERROR;
 
-	if (create2(linkname) != SUCCESS)
+	if (ghost_create2(linkname) != SUCCESS)
 		return ERROR;
 
 	Record *link_record_ptr;
