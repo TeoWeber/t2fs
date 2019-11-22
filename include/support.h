@@ -14,6 +14,10 @@ typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
 
+typedef struct t2fs_superbloco SuperBlock;
+typedef struct t2fs_record Record;
+typedef struct t2fs_inode iNode;
+
 typedef struct t_mbr
 {
     WORD version;
@@ -45,7 +49,7 @@ typedef struct t_partition
     DWORD final_sector;
     DWORD size_in_sectors;
     boolean is_formatted;
-    t2fs_superbloco super_block;
+    SuperBlock super_block;
     DWORD number_of_inodes;
     DWORD number_of_data_blocks;
 } Partition;
@@ -53,13 +57,13 @@ typedef struct t_partition
 typedef struct t_open_file
 {
     boolean handle_used;
-    t2fs_record record;
+    Record record;
     DWORD current_ptr;
 } OpenFile;
 
 // constante de de inodes
 #define INVALID_PTR (DWORD)0
-#define INVALID_INODE_PTR (t2fs_inode *)0
+#define INVALID_INODE_PTR (iNode *)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
@@ -99,7 +103,7 @@ boolean is_the_root_dir_open;
 
 DWORD root_dir_entry_current_ptr;
 
-t2fs_inode *root_dir_inode_ptr;
+iNode *root_dir_inode_ptr;
 
 void initialize_file_system();
 
@@ -109,7 +113,7 @@ int fill_partition_structure(int partition, int sectors_per_block);
 
 int reset_bitmaps(int partition);
 
-void define_empty_inode_from_inode_ptr(t2fs_inode *inode_ptr);
+void define_empty_inode_from_inode_ptr(iNode *inode_ptr);
 
 int format_root_dir(int partition);
 
@@ -117,25 +121,25 @@ DWORD checksum(int partition);
 
 boolean is_a_handle_used(FILE2 handle);
 
-t2fs_record *get_record_ptr_from_file_given_filename(char *filename);
+Record *get_record_ptr_from_file_given_filename(char *filename);
 
-t2fs_record *get_i_th_record_ptr_from_root_dir(DWORD i);
+Record *get_i_th_record_ptr_from_root_dir(DWORD i);
 
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number);
 
 FILE2 get_first_unused_handle();
 
-t2fs_inode *get_inode_ptr_given_inode_number(DWORD inode_number);
+iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 
-t2fs_inode *allocate_next_free_inode_given_itself_and_get_ptr(t2fs_inode inode);
+iNode *allocate_next_free_inode_given_itself_and_get_ptr(iNode inode);
 
-int alocate_next_free_data_block_to_file_given_file_inode(t2fs_inode inode);
+int alocate_next_free_data_block_to_file_given_file_inode(iNode inode);
 
 void retrieve_ptrs_from_block(DWORD block_number, DWORD *ptrs);
 
 int read_block_from_block_number(int ptr, int block_number, int bytes, char *buffer);
 
-int read_n_bytes_from_file(DWORD ptr, int n, t2fs_inode inode, char *buffer);
+int read_n_bytes_from_file(DWORD ptr, int n, iNode inode, char *buffer);
 
 void write_block_to_block_number(DWORD block_number, char *buffer);
 
@@ -143,7 +147,7 @@ int initialize_new_ptr_block();
 
 void insert_ptr_in_buffer(DWORD ptr, int starting_pos, unsigned char *buffer);
 
-int update_inode_on_disk(int inode_number, t2fs_inode inode);
+int update_inode_on_disk(int inode_number, iNode inode);
 
 int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr);
 
@@ -153,14 +157,14 @@ DWORD get_block_of_inodes_ptr_where_inode_should_be_given_inode_number(DWORD ino
 
 DWORD get_data_block_ptr_where_data_should_be_given_data_number_of_block(DWORD data_number_of_block);
 
-t2fs_inode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i);
+iNode *get_inode_from_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, DWORD i);
 
-int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, t2fs_inode inode, DWORD i);
+int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, iNode inode, DWORD i);
 
 DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD i);
 
 int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i);
 
-boolean is_used_record_ptr(t2fs_record *record_ptr);
+boolean is_used_record_ptr(Record *record_ptr);
 
 int ghost_create2(char *filename);
