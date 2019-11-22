@@ -26,10 +26,7 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 
 	if (partition == mounted_partition_index)
-	{
-		if (umount() != SUCCESS)
-			return ERROR;
-	}
+		umount(partition);
 
 	if (reset_partition_sectors(partition) != SUCCESS)
 		return ERROR;
@@ -396,7 +393,7 @@ int hln2(char *linkname, char *filename)
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
-	if (ref_record_ptr->TypeVal == TYPEVAL_INVALIDO)
+	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
 		return ERROR;
 
 	if (ghost_create2(linkname) != SUCCESS)

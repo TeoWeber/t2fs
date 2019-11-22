@@ -1,11 +1,7 @@
 #include <string.h>
-#include "t2disk.h"
 #include "apidisk.h"
 #include "bitmap2.h"
-
-typedef int boolean;
-#define false 0
-#define true (!false)
+#include "t2disk.h"
 
 typedef int FILE2;
 typedef int DIR2;
