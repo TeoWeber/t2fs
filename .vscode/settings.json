@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "t2fs.h": "c",
+        "t2disk.h": "c",
+        "support.h": "c"
+    }
+}

@@ -1,6 +1,8 @@
 #ifndef __LIBT2FS___
 #define __LIBT2FS___
 
+#pragma once
+
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
