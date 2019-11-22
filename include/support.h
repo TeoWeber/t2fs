@@ -68,7 +68,7 @@ typedef struct t_open_file
 #define HANDLE_USED true
 #define HANDLE_UNUSED false
 #define INVALID_HANDLE (FILE2) - 1
-#define INVALID_RECORD_PTR (Record *)0
+#define INVALID_RECORD_PTR 0
 
 // constantes de partições
 #define MAX_PARTITIONS 4
