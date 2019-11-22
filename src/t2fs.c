@@ -107,28 +107,28 @@ FILE2 create2(char *filename)
 	if ((handle = get_first_unused_handle()) == INVALID_HANDLE)
 		return INVALID_HANDLE;
 
-	Record *record_ptr = get_record_ptr_from_file_given_filename(filename);
-	if (record_ptr == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
+	if (get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
 	{
-		DWORD new_record_id = get_i_from_first_invalid_record();
 		DWORD new_inode_id = get_free_inode_number_in_partition();
-
-		Record new_record;
-		memset(new_record.name, '\0', sizeof((*record_ptr).name));		   // Enche todos os espaços vazios de '\0'
-		strncpy(new_record.name, filename, sizeof((*record_ptr).name) - 1); // Coloca o nome sobre os '\0'
-		new_record.TypeVal = TYPEVAL_REGULAR;
-		new_record.inodeNumber = new_inode_id;
 
 		iNode new_inode;
 		define_empty_inode_from_inode_ptr(&new_inode);
 		new_inode.RefCounter = 1;
 
-		open_files[handle].record = *record_ptr;
+		update_inode_on_disk(new_inode_id, new_inode);
+		
+		DWORD new_record_id = get_i_from_first_invalid_record();
+
+		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
+		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
+		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
+		new_record_ptr->TypeVal = TYPEVAL_REGULAR;
+		new_record_ptr->inodeNumber = new_inode_id;
+
+		open_files[handle].record = *new_record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
 		open_files[handle].handle_used = HANDLE_USED;
 
-		update_inode_on_disk(new_inode_id, new_inode);
-		update_record_on_disk(new_record_id, new_record);
 	}
 	else
 	{
@@ -162,7 +162,7 @@ int delete2(char *filename)
 }
 
 /*-----------------------------------------------------------------------------
-Função:	Função que abre um arquivo existente no disco. 
+Função:	Função que abre um arquivo existente no disco.
 -----------------------------------------------------------------------------*/
 FILE2 open2(char *filename)
 {
