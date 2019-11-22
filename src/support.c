@@ -40,6 +40,18 @@ void initialize_file_system()
     file_system_initialized = true;
 }
 
+int reset_partition_sectors(int partition)
+{
+    unsigned char emptyBuffer[SECTOR_SIZE];
+    memset(emptyBuffer, '\0', SECTOR_SIZE);
+    for (DWORD sector_number = partitions[partition].boot_sector; sector_number <= partitions[partition].final_sector; sector_number++)
+    {
+        if ((write_sector(sector_number, emptyBuffer)) != SUCCESS)
+            return ERROR;
+    }
+    return SUCCESS;
+}
+
 int fill_partition_structure(int partition, int sectors_per_block)
 {
     if (sectors_per_block <= 0) // Tamanho de bloco inválido
@@ -184,20 +196,17 @@ boolean is_a_handle_used(FILE2 handle)
 Record *get_record_ptr_from_file_given_filename(char *filename)
 {
     // Percorremos todas entradas em busca de uma entrada com nome == filename
-    boolean hitFlag = false;
     Record *record_ptr;
-    for (int i = 0; (record_ptr = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
+    for (int i = 0; 1; i++)
     {
-        if (strcmp(record_ptr->name, filename) == 0) // Se as strings são iguais strcmp retorna 0
-        {
-            hitFlag = true;
-            break;
-        }
-    }
+        record_ptr = get_i_th_record_ptr_from_root_dir(i);
 
-    // Se não encontrou nenhuma entrada na busca anterior, retornamos falha
-    if (!hitFlag)
-        return INVALID_RECORD_PTR;
+        if (!is_used_record_ptr(record_ptr))
+            return INVALID_RECORD_PTR;
+
+        if (strcmp(record_ptr->name, filename) == 0) // Se as strings são iguais strcmp retorna 0
+            break;
+    }
 
     // Se o tipo da entrada não for válido, retornamos falha
     if (record_ptr->TypeVal != TYPEVAL_REGULAR && record_ptr->TypeVal != TYPEVAL_LINK)
@@ -223,8 +232,13 @@ DWORD get_i_from_first_invalid_record()
     Record *record_ptr;
     int i;
 
-    for (i = 0; (record_ptr = get_i_th_record_ptr_from_root_dir(i)) != INVALID_RECORD_PTR; i++)
-        ;
+    for (i = 0; 1; i++)
+    {
+        record_ptr = get_i_th_record_ptr_from_root_dir(i);
+
+        if (!is_used_record_ptr(record_ptr))
+            break;
+    }
 
     return (DWORD)i;
 }
@@ -925,4 +939,15 @@ int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD bloc
 int update_record_on_disk(DWORD record_id, Record record_ptr)
 {
     return ERROR;
+}
+
+boolean is_used_record_ptr(Record *record_ptr)
+{
+    char emptyRecord[sizeof(Record)];
+    memset(emptyRecord, '\0', sizeof(Record));
+
+    if (strcmp((char *) record_ptr, (char *) emptyRecord) == 0)
+        return false;
+    else
+        return true;
 }

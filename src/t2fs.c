@@ -25,8 +25,11 @@ int format2(int partition, int sectors_per_block)
 	if (partition < 0) // Índice da partição a ser formatada é menor que o índice da primeira partição (ou seja, índice inválido)
 		return ERROR;
 
-	//if (partition == mounted_partition_index) // Partição a ser formatada está montada, devemos demontá-la antes então. (certo?)
-	//umount(partition);
+	if (partition == mounted_partition_index)
+		umount(partition);
+
+	if (reset_partition_sectors(partition) != SUCCESS)
+		return ERROR;
 
 	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
@@ -116,7 +119,7 @@ FILE2 create2(char *filename)
 		new_inode.RefCounter = 1;
 
 		update_inode_on_disk(new_inode_id, new_inode);
-		
+
 		DWORD new_record_id = get_i_from_first_invalid_record();
 
 		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
@@ -286,7 +289,8 @@ int readdir2(DIRENT2 *dentry)
 		return ERROR;
 
 	Record *record_ptr;
-	if ((record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr)) == INVALID_RECORD_PTR)
+	record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr);
+	if (!is_used_record_ptr(record_ptr))
 		return ERROR;
 
 	iNode *inode_ptr;

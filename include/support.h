@@ -103,6 +103,8 @@ iNode *root_dir_inode_ptr;
 
 void initialize_file_system();
 
+int reset_partition_sectors(int partition);
+
 int fill_partition_structure(int partition, int sectors_per_block);
 
 int reset_bitmaps(int partition);
@@ -158,3 +160,5 @@ int write_inode_in_i_th_position_of_block_of_inodes(DWORD block_of_inodes_ptr, i
 DWORD get_data_block_ptr_from_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD i);
 
 int write_data_block_ptr_in_i_th_position_of_block_of_data_block_ptrs(DWORD block_data_block_ptrs_ptr, DWORD data_block_ptr, DWORD i);
+
+boolean is_used_record_ptr(Record *record_ptr);
