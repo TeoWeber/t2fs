@@ -8,24 +8,26 @@
 #
 # 
 
-CC=gcc
+CC=gcc -c
+CFLAGS= -lm -Wall -Wextra -O2 -Wunreachable-code -Wuninitialized -Winit-self -std=gnu99
 LIB_DIR=./lib
 INC_DIR=./include
 BIN_DIR=./bin
 SRC_DIR=./src
 
-FLAGS=-Wall -Wextra -g
+LIB=$(LIB_DIR)/libt2fs.a
 
-all: t2fs.o support.o
-	ar -crs $(LIB_DIR)/libt2fs.a $^ $(LIB_DIR)/*.o
+all: $(BIN_DIR)/t2fs.o $(BIN_DIR)/support.o
+	ar -crs $(LIB) $^ $(LIB_DIR)/apidisk.o $(LIB_DIR)/bitmap2.o 
 
-t2fs.o:
-	$(CC) -c $(SRC_DIR)/t2fs.c -o $(BIN_DIR)@ $< -I$(INC_DIR) $(FLAGS)
+$(BIN_DIR)/t2fs.o: $(SRC_DIR)/t2fs.c 
+	$(CC) -o $@ $< -I$(INC_DIR) $(CFLAGS)
 
-support.o:
-	$(CC) -c $(SRC_DIR)/support.c -o $(BIN_DIR)@ $< -I$(INC_DIR) $(FLAGS)
+$(BIN_DIR)/support.o: $(SRC_DIR)/support.c 
+	$(CC) -o $@ $< -I$(INC_DIR) $(CFLAGS)
+
+tar: clean
+	@cd .. && tar -zcvf t2fs.tar.gz T2FS
 
 clean:
-	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/t2fs.o $(BIN_DIR)/support.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~
-
-
+	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/*.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~

@@ -59,7 +59,7 @@ typedef struct t_open_file
 
 // constante de de inodes
 #define INVALID_PTR (DWORD)0
-#define INVALID_INODE_PTR (iNode *)0
+#define INVALID_INODE_PTR (DWORD)0
 
 // constantes de arquivos
 #define MAX_FILE_NAME_SIZE 255
@@ -150,3 +150,5 @@ int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer);
 boolean is_used_record_ptr(Record *record_ptr);
 
 int ghost_create2(char *filename);
+
+int update_inode_on_disk(int inode_number, iNode inode);

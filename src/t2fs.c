@@ -1,4 +1,4 @@
-#include "../include/t2fs.h"
+#include "t2fs.h"
 
 int identify2(char *name, int size)
 {
@@ -26,7 +26,7 @@ int format2(int partition, int sectors_per_block)
 		return ERROR;
 
 	if (partition == mounted_partition_index)
-		umount(partition);
+		umount();
 
 	if (reset_partition_sectors(partition) != SUCCESS)
 		return ERROR;
@@ -219,7 +219,7 @@ int read2(FILE2 handle, char *buffer, int size)
 	Record record = file.record;
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == (iNode*)INVALID_INODE_PTR)
 		return ERROR;
 
 	// verifica eof
@@ -292,7 +292,7 @@ int readdir2(DIRENT2 *dentry)
 		return ERROR;
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == (iNode*)INVALID_INODE_PTR)
 		return ERROR;
 
 	strcpy(dentry->name, record_ptr->name);
@@ -353,7 +353,7 @@ int sln2(char *linkname, char *filename)
 	// Pegamos o inode, sabendo o número dele. Isso se não der erro.
 	iNode *link_inode_ptr;
 	link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber);
-	if (link_inode_ptr == INVALID_INODE_PTR)
+	if (link_inode_ptr == (iNode*)INVALID_INODE_PTR)
 		return ERROR;
 
 	int bytes_written = write_n_bytes_to_file(0, strlen(filename), link_record_ptr->inodeNumber, filename);
@@ -378,7 +378,7 @@ int hln2(char *linkname, char *filename)
 	if (ref_record_ptr == INVALID_RECORD_PTR)
 		return ERROR;
 
-	if (ref_record_ptr->TypeVal = TYPEVAL_INVALIDO)
+	if (ref_record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
 	if (ghost_create2(linkname) != SUCCESS)
@@ -393,7 +393,7 @@ int hln2(char *linkname, char *filename)
 	link_record_ptr->inodeNumber = ref_record_ptr->inodeNumber;
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == (iNode*)INVALID_INODE_PTR)
 		return ERROR;
 
 	inode_ptr->RefCounter++;
