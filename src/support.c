@@ -263,11 +263,12 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
                                               (DWORD)sizeof(Record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
-    unsigned char data_block[SECTOR_SIZE];
-    if (read_sector(data_block_ptr, data_block) != SUCCESS)
+    int block_size = partitions[mounted_partition_index].super_block.blockSize;
+    char data_block[block_size * SECTOR_SIZE];
+    if (read_block_from_block_number(0, data_block_ptr, block_size, data_block) != block_size)
         return INVALID_RECORD_PTR;
 
-    return INVALID_RECORD_PTR; // nao tem como devolver unsigned char como Record
+    return &((Record *)data_block)[i % number_of_records_per_data_blocks];
 }
 
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
