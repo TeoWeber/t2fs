@@ -24,8 +24,7 @@ Entra:	sector -> setor lógico a ser lido, iniciando em ZERO
 Retorna:"0", se a leitura foi realizada corretamente
 	Valor diferente de zero, caso tenha ocorrido algum erro.
 ------------------------------------------------------------------------*/
-int read_sector (unsigned int sector, unsigned char *buffer);
-
+int read_sector(unsigned int sector, unsigned char *buffer);
 
 /*------------------------------------------------------------------------
 Função:	Realiza escrita de um setor lógico do disco
@@ -36,9 +35,6 @@ Entra:	sector -> setor lógico a ser escrito, iniciando em ZERO
 Retorna:"0", se a leitura foi realizada corretamente
 	Valor diferente de zero, caso tenha ocorrido algum erro.
 ------------------------------------------------------------------------*/
-int write_sector (unsigned int sector, unsigned char *buffer);
+int write_sector(unsigned int sector, unsigned char *buffer);
 
 #endif
-
-
-

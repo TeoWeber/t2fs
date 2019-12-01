@@ -122,16 +122,23 @@ FILE2 create2(char *filename)
 
 		DWORD new_record_id = get_i_from_first_invalid_record();
 
-		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
-		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
+		Record *new_record_ptr = (Record *)malloc(sizeof(Record));
+		memset((void *)new_record_ptr->name, '\0', sizeof(new_record_ptr->name));  // Enche todos os espaços vazios de '\0'
 		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
 		new_record_ptr->TypeVal = TYPEVAL_REGULAR;
 		new_record_ptr->inodeNumber = new_inode_id;
+
+		if (set_i_th_record_ptr_on_root_dir_given_itself(new_record_id, new_record_ptr) != SUCCESS)
+		{
+			free(new_record_ptr);
+			return INVALID_HANDLE;
+		}
 
 		open_files[handle].record = *new_record_ptr;
 		open_files[handle].current_ptr = PTR_START_POSITION;
 		open_files[handle].handle_used = HANDLE_USED;
 
+		free(new_record_ptr);
 	}
 	else
 	{
@@ -219,7 +226,7 @@ int read2(FILE2 handle, char *buffer, int size)
 	Record record = file.record;
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == (iNode*)INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record.inodeNumber)) == (iNode *)INVALID_INODE_PTR)
 		return ERROR;
 
 	// verifica eof
@@ -231,7 +238,7 @@ int read2(FILE2 handle, char *buffer, int size)
 		size = inode_ptr->bytesFileSize - file.current_ptr;
 
 	// lê conteúdo e atualiza handle do arquivo
-	if (read_n_bytes_from_file(file.current_ptr, size, *inode_ptr, buffer) == ERROR)
+	if (read_n_bytes_from_file_given_its_inode(file.current_ptr, size, *inode_ptr, buffer) == ERROR)
 		return ERROR;
 
 	file.current_ptr += size;
@@ -250,7 +257,7 @@ int write2(FILE2 handle, char *buffer, int size)
 	OpenFile file = open_files[handle];
 	Record record = file.record;
 
-	int bytes_written = write_n_bytes_to_file(file.current_ptr, size, record.inodeNumber, buffer);
+	int bytes_written = write_n_bytes_to_file_given_its_inode_number(file.current_ptr, size, record.inodeNumber, buffer);
 	if (bytes_written == ERROR)
 		return ERROR;
 
@@ -288,6 +295,11 @@ int readdir2(DIRENT2 *dentry)
 
 	Record *record_ptr;
 	record_ptr = get_i_th_record_ptr_from_root_dir(root_dir_entry_current_ptr);
+	if (record_ptr == INVALID_RECORD_PTR)
+	{
+		free(record_ptr);
+		return INVALID_RECORD_PTR;
+	}
 	if (!is_used_record_ptr(record_ptr))
 		return ERROR;
 
@@ -295,19 +307,23 @@ int readdir2(DIRENT2 *dentry)
 	if (record_ptr->TypeVal == TYPEVAL_INVALIDO)
 	{
 		root_dir_entry_current_ptr++;
+		free(record_ptr);
 		return readdir2(dentry);
 	}
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == (iNode*)INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == (iNode *)INVALID_INODE_PTR)
+	{
+		free(record_ptr);
 		return ERROR;
+	}
 
 	strcpy(dentry->name, record_ptr->name);
 	dentry->fileType = record_ptr->TypeVal;
 	dentry->fileSize = inode_ptr->bytesFileSize;
 
 	root_dir_entry_current_ptr++;
-
+	free(record_ptr);
 	return SUCCESS;
 }
 
@@ -360,10 +376,10 @@ int sln2(char *linkname, char *filename)
 	// Pegamos o inode, sabendo o número dele. Isso se não der erro.
 	iNode *link_inode_ptr;
 	link_inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber);
-	if (link_inode_ptr == (iNode*)INVALID_INODE_PTR)
+	if (link_inode_ptr == (iNode *)INVALID_INODE_PTR)
 		return ERROR;
 
-	int bytes_written = write_n_bytes_to_file(0, strlen(filename), link_record_ptr->inodeNumber, filename);
+	int bytes_written = write_n_bytes_to_file_given_its_inode_number(0, strlen(filename), link_record_ptr->inodeNumber, filename);
 	if (bytes_written == ERROR)
 		return ERROR;
 
@@ -400,7 +416,7 @@ int hln2(char *linkname, char *filename)
 	link_record_ptr->inodeNumber = ref_record_ptr->inodeNumber;
 
 	iNode *inode_ptr;
-	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == (iNode*)INVALID_INODE_PTR)
+	if ((inode_ptr = get_inode_ptr_given_inode_number(link_record_ptr->inodeNumber)) == (iNode *)INVALID_INODE_PTR)
 		return ERROR;
 
 	inode_ptr->RefCounter++;

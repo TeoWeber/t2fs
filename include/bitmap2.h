@@ -1,9 +1,8 @@
 #ifndef __BITMAP2__
-#define	__BITMAP2__
+#define __BITMAP2__
 
-#define	BITMAP_INODE	0
-#define	BITMAP_DADOS	1
-
+#define BITMAP_INODE 0
+#define BITMAP_DADOS 1
 
 /*------------------------------------------------------------------------
 Fun��o:	Abre os bitmaps de uma parti��o
@@ -11,7 +10,7 @@ Entra:	N�mero do setor onde se encontra o superbloco
 Retorna: ==0, se sucesso
 		 !=0, se erro
 ------------------------------------------------------------------------*/
-int openBitmap2 (int superbloco_sector);
+int openBitmap2(int superbloco_sector);
 
 /*------------------------------------------------------------------------
 Fun��o:	Fecha os bitmaps de uma parti��o.
@@ -20,7 +19,7 @@ Entra:	-
 Retorna: ==0, se sucesso
 		 !=0, se erro
 ------------------------------------------------------------------------*/
-int closeBitmap2 (void);
+int closeBitmap2(void);
 
 /*------------------------------------------------------------------------
 	Recupera o bit indicado do bitmap solicitado
@@ -33,7 +32,7 @@ Retorna:
 	Sucesso: valor do bit: ZERO ou UM (0 ou 1)
 	Erro: n�mero negativo
 ------------------------------------------------------------------------*/
-int	getBitmap2 (int handle, int bitNumber);
+int getBitmap2(int handle, int bitNumber);
 
 /*------------------------------------------------------------------------
 	Seta o bit indicado do bitmap solicitado
@@ -49,7 +48,7 @@ Retorna
 	Sucesso: ZERO (0)
 	Erro: n�mero negativo
 ------------------------------------------------------------------------*/
-int	setBitmap2 (int handle, int bitNumber, int bitValue);
+int setBitmap2(int handle, int bitNumber, int bitValue);
 
 /*------------------------------------------------------------------------
 	Procura no bitmap solicitado pelo valor indicado
@@ -64,6 +63,6 @@ Retorna
 		N�o achou: ZERO
 	Erro: n�mero negativo
 ------------------------------------------------------------------------*/
-int	searchBitmap2 (int handle, int bitValue);
+int searchBitmap2(int handle, int bitValue);
 
 #endif
