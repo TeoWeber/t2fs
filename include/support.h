@@ -6,6 +6,19 @@
 #include "bitmap2.h"
 #include "t2disk.h"
 
+extern boolean file_system_initialized;
+
+extern MBR mbr;
+
+extern Partition partitions[MAX_PARTITIONS];
+extern int mounted_partition_index;
+
+extern boolean is_the_root_dir_open;
+extern DWORD root_dir_entry_current_ptr;
+extern iNode *root_dir_inode_ptr;
+
+extern OpenFile open_files[MAX_OPEN_FILES];
+
 typedef struct t_mbr
 {
     WORD version;
