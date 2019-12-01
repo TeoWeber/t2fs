@@ -58,7 +58,7 @@ $(BIN_DIR)/support.o: $(SRC_DIR)/support.c
 	$(CC) -o $@ $< -I$(INC_DIR) $(CFLAGS)
 
 tar: clean
-	@cd .. && tar -zcvf AnaAugustoRafael.tar.gz T2FS
+	@cd .. && tar -zcvf AstelioFredericoJulia.tar.gz T2FS
 
 clean:
 	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/*.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~
