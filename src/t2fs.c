@@ -291,6 +291,13 @@ int readdir2(DIRENT2 *dentry)
 	if (!is_used_record_ptr(record_ptr))
 		return ERROR;
 
+	// Se o arquivo foi deletado: fazer uma recursão a mais.
+	if (record_ptr->TypeVal == TYPEVAL_INVALIDO)
+	{
+		root_dir_entry_current_ptr++;
+		return readdir2(dentry);
+	}
+
 	iNode *inode_ptr;
 	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == (iNode*)INVALID_INODE_PTR)
 		return ERROR;
