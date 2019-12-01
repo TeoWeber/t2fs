@@ -644,7 +644,7 @@ int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *
         sector += 1;
         written_sectors += 1;
     }
-    return SUCCESS
+    return SUCCESS;
 }
 
 int initialize_new_block_of_data_block_ptrs_and_get_its_number()
