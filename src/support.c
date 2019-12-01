@@ -1,5 +1,18 @@
 #include "support.h"
 
+boolean file_system_initialized = false;
+
+MBR mbr;
+
+Partition partitions[MAX_PARTITIONS];
+int mounted_partition_index;
+
+boolean is_the_root_dir_open;
+DWORD root_dir_entry_current_ptr;
+iNode *root_dir_inode_ptr;
+
+OpenFile open_files[MAX_OPEN_FILES];
+
 void initialize_file_system()
 {
     if (file_system_initialized)
@@ -61,7 +74,8 @@ int fill_partition_structure(int partition, int sectors_per_block)
     if ((DWORD)sectors_per_block > partitions[partition].size_in_sectors) // Resultaria em uma partição com menos de um bloco
         return ERROR;
 
-    strcpy(partitions[partition].super_block.id, "T2FS");
+    BYTE superblock_id[] = "T2FS";
+    memcpy(partitions[partition].super_block.id, superblock_id, 4);
 
     partitions[partition].super_block.version = (WORD)0x7E32;
 
@@ -264,7 +278,7 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    char data_block[block_size * SECTOR_SIZE];
+    char *data_block = malloc(block_size * SECTOR_SIZE);
     if (read_block_from_block_number(0, data_block_ptr, block_size, data_block) != block_size)
         return INVALID_RECORD_PTR;
 
@@ -276,7 +290,7 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
 {
     iNode *inode;
     inode = get_inode_ptr_given_inode_number(inode_number);
-    if (inode == (iNode*)INVALID_INODE_PTR)
+    if (inode == (iNode *)INVALID_INODE_PTR)
         return INVALID_INODE_PTR;
 
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
@@ -291,13 +305,13 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
         DWORD ptrs[ptr_per_block];
         retrieve_ptrs_from_block(inode->singleIndPtr, ptrs);
 
-        return ptrs[i-3];
+        return ptrs[i - 3];
     }
     else if (i > (DWORD)(ptr_per_block + 2))
     {
         DWORD ind_ptrs[ptr_per_block];
         retrieve_ptrs_from_block(inode->doubleIndPtr, ind_ptrs);
-        
+
         int ptr_block_pos;
         i -= (ptr_per_block + 2);
         ptr_block_pos = i / ptr_per_block;
@@ -345,14 +359,14 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
 
     iNode *inode_ptr;
     inode_start = (inode_number % 8) * 32;
-    inode_ptr->blocksFileSize = *((DWORD*) (sector_buffer + inode_start + 0));
-    inode_ptr->bytesFileSize = *((DWORD*) (sector_buffer + inode_start + 4));
-    inode_ptr->dataPtr[0] = *((DWORD*) (sector_buffer + inode_start + 8));
-    inode_ptr->dataPtr[1] = *((DWORD*) (sector_buffer + inode_start + 12));
-    inode_ptr->singleIndPtr = *((DWORD*) (sector_buffer + inode_start + 16));
-    inode_ptr->doubleIndPtr = *((DWORD*) (sector_buffer + inode_start + 20));
-    inode_ptr->RefCounter = *((DWORD*) (sector_buffer + inode_start + 24));
-    inode_ptr->reservado = *((DWORD*) (sector_buffer + inode_start + 28));
+    inode_ptr->blocksFileSize = *((DWORD *)(sector_buffer + inode_start + 0));
+    inode_ptr->bytesFileSize = *((DWORD *)(sector_buffer + inode_start + 4));
+    inode_ptr->dataPtr[0] = *((DWORD *)(sector_buffer + inode_start + 8));
+    inode_ptr->dataPtr[1] = *((DWORD *)(sector_buffer + inode_start + 12));
+    inode_ptr->singleIndPtr = *((DWORD *)(sector_buffer + inode_start + 16));
+    inode_ptr->doubleIndPtr = *((DWORD *)(sector_buffer + inode_start + 20));
+    inode_ptr->RefCounter = *((DWORD *)(sector_buffer + inode_start + 24));
+    inode_ptr->reservado = *((DWORD *)(sector_buffer + inode_start + 28));
 
     return inode_ptr;
 }
@@ -648,8 +662,8 @@ int write_new_ptr_to_block(int i, DWORD block_number, DWORD ptr)
 int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer)
 {
     iNode *inode;
-	if ((inode = get_inode_ptr_given_inode_number(inodenum)) == (iNode*)INVALID_INODE_PTR)
-		return ERROR;
+    if ((inode = get_inode_ptr_given_inode_number(inodenum)) == (iNode *)INVALID_INODE_PTR)
+        return ERROR;
 
     int written_bytes = 0, remaining_bytes = n;
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
@@ -661,7 +675,7 @@ int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer)
     DWORD first_ptr = ptr;
 
     curr_block = 1 + ptr / (block_size * SECTOR_SIZE);
-	curr_ptr = ptr - ( curr_block - 1 ) * block_size * SECTOR_SIZE;
+    curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
     // ponteiros diretos
     if (curr_block == 1)
     {
@@ -691,7 +705,7 @@ int write_n_bytes_to_file(DWORD ptr, int n, int inodenum, char *buffer)
 
     if (curr_block == 2)
     {
-		curr_ptr = ptr - ( curr_block - 1 ) * block_size * SECTOR_SIZE;
+        curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
         if (inode->dataPtr[1] == INVALID_PTR)
         {
             if (searchBitmap2(BITMAP_DADOS, 0) < 0)
@@ -849,7 +863,7 @@ boolean is_used_record_ptr(Record *record_ptr)
     char emptyRecord[sizeof(Record)];
     memset(emptyRecord, '\0', sizeof(Record));
 
-    if (strcmp((char *) record_ptr, (char *) emptyRecord) == 0)
+    if (strcmp((char *)record_ptr, (char *)emptyRecord) == 0)
         return false;
     else
         return true;
@@ -857,34 +871,34 @@ boolean is_used_record_ptr(Record *record_ptr)
 
 int ghost_create2(char *filename)
 {
-	initialize_file_system();
+    initialize_file_system();
 
-	if (mounted_partition_index == NO_MOUNTED_PARTITION)
-		return ERROR;
+    if (mounted_partition_index == NO_MOUNTED_PARTITION)
+        return ERROR;
 
-	if (get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
-	{
-		DWORD new_inode_id = get_free_inode_number_in_partition();
+    if (get_record_ptr_from_file_given_filename(filename) == INVALID_RECORD_PTR) // Não tinha ninguém com esse filename
+    {
+        DWORD new_inode_id = get_free_inode_number_in_partition();
 
-		iNode new_inode;
-		define_empty_inode_from_inode_ptr(&new_inode);
-		new_inode.RefCounter = 1;
+        iNode new_inode;
+        define_empty_inode_from_inode_ptr(&new_inode);
+        new_inode.RefCounter = 1;
 
-		update_inode_on_disk(new_inode_id, new_inode);
+        update_inode_on_disk(new_inode_id, new_inode);
 
-		DWORD new_record_id = get_i_from_first_invalid_record();
+        DWORD new_record_id = get_i_from_first_invalid_record();
 
-		Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
-		memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));		   // Enche todos os espaços vazios de '\0'
-		strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
-		new_record_ptr->TypeVal = TYPEVAL_REGULAR;
-		new_record_ptr->inodeNumber = new_inode_id;
-	}
-	else
-	{
-		delete2(filename);
-		ghost_create2(filename);
-	}
+        Record *new_record_ptr = get_i_th_record_ptr_from_root_dir(new_record_id);
+        memset(new_record_ptr->name, '\0', sizeof(new_record_ptr->name));          // Enche todos os espaços vazios de '\0'
+        strncpy(new_record_ptr->name, filename, sizeof(new_record_ptr->name) - 1); // Coloca o nome sobre os '\0'
+        new_record_ptr->TypeVal = TYPEVAL_REGULAR;
+        new_record_ptr->inodeNumber = new_inode_id;
+    }
+    else
+    {
+        delete2(filename);
+        ghost_create2(filename);
+    }
 
-	return SUCCESS;
+    return SUCCESS;
 }

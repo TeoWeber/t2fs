@@ -1,18 +1,10 @@
+#ifndef __SUPPORT_H_
+#define __SUPPORT_H_
+
 #include <string.h>
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
-
-typedef int FILE2;
-typedef int DIR2;
-
-typedef unsigned char BYTE;
-typedef unsigned short int WORD;
-typedef unsigned int DWORD;
-
-typedef struct t2fs_superbloco SuperBlock;
-typedef struct t2fs_record Record;
-typedef struct t2fs_inode iNode;
 
 typedef struct t_mbr
 {
@@ -56,50 +48,6 @@ typedef struct t_open_file
     Record record;
     DWORD current_ptr;
 } OpenFile;
-
-// constante de de inodes
-#define INVALID_PTR (DWORD)0
-#define INVALID_INODE_PTR (DWORD)0
-
-// constantes de arquivos
-#define MAX_FILE_NAME_SIZE 255
-#define MAX_OPEN_FILES 10
-#define PTR_START_POSITION (DWORD)0
-#define HANDLE_USED true
-#define HANDLE_UNUSED false
-#define INVALID_HANDLE (FILE2) - 1
-#define INVALID_RECORD_PTR 0
-
-// constantes de partições
-#define MAX_PARTITIONS 4
-#define PARTITION_FORMATTED true
-#define PARTITION_UNFORMATTED false
-#define NO_MOUNTED_PARTITION -1
-
-// códigos de retorno
-#define SUCCESS 0
-#define ERROR -1
-
-// tipos de arquivos
-#define TYPEVAL_INVALIDO 0x00
-#define TYPEVAL_REGULAR 0x01
-#define TYPEVAL_LINK 0x02
-
-boolean file_system_initialized = 0;
-
-MBR mbr;
-
-Partition partitions[MAX_PARTITIONS];
-
-int mounted_partition_index;
-
-OpenFile open_files[MAX_OPEN_FILES];
-
-boolean is_the_root_dir_open;
-
-DWORD root_dir_entry_current_ptr;
-
-iNode *root_dir_inode_ptr;
 
 void initialize_file_system();
 
@@ -152,3 +100,5 @@ boolean is_used_record_ptr(Record *record_ptr);
 int ghost_create2(char *filename);
 
 int update_inode_on_disk(int inode_number, iNode inode);
+
+#endif
