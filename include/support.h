@@ -2,6 +2,7 @@
 #define __SUPPORT_H_
 
 #include <string.h>
+#include <stdlib.h>
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
@@ -85,6 +86,8 @@ DWORD get_i_from_first_invalid_record();
 DWORD get_free_inode_number_in_partition();
 
 Record *get_i_th_record_ptr_from_root_dir(DWORD i);
+
+int set_i_th_record_ptr_on_root_dir_given_itself(DWORD i, Record *record_ptr);
 
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number);
 
