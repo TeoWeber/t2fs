@@ -6,6 +6,7 @@
 #include "apidisk.h"
 #include "bitmap2.h"
 #include "t2disk.h"
+#include "t2fs.h"
 
 typedef struct t_mbr
 {

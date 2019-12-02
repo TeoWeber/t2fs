@@ -1071,7 +1071,7 @@ int ghost_create2(char *filename)
 
         free(new_record_ptr);
 
-        return SUCCESS
+        return SUCCESS;
     }
     else
     {
