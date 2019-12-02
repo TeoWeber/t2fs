@@ -298,7 +298,7 @@ int readdir2(DIRENT2 *dentry)
 	if (record_ptr == INVALID_RECORD_PTR)
 	{
 		free(record_ptr);
-		return INVALID_RECORD_PTR;
+		return ERROR;
 	}
 	if (!is_used_record_ptr(record_ptr))
 		return ERROR;
