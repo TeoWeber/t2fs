@@ -139,14 +139,14 @@ FILE2 create2(char *filename)
 		open_files[handle].handle_used = HANDLE_USED;
 
 		free(new_record_ptr);
+
+		return handle;
 	}
 	else
 	{
 		delete2(filename);
 		return create2(filename);
 	}
-
-	return handle;
 }
 
 /*-----------------------------------------------------------------------------

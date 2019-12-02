@@ -284,8 +284,7 @@ DWORD get_free_inode_number_in_partition()
         return 0; // ERROR
     }
 
-    if (setBitmap2(BITMAP_INODE, inode_number, 1) != SUCCESS)
-        ; // Ativa este inode no Bitmap da partição
+    if (setBitmap2(BITMAP_INODE, inode_number, 1) != SUCCESS) // Ativa este inode no Bitmap da partição
     {
         closeBitmap2();
         return 0; // ERROR
@@ -328,7 +327,7 @@ int set_i_th_record_ptr_on_root_dir_given_itself(DWORD i, Record *record_ptr)
     if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size, data_block) != block_size)
         return ERROR;
 
-    ((Record *)data_block)[i % number_of_records_per_data_blocks] = record_ptr;
+    ((Record *)data_block)[i % number_of_records_per_data_blocks] = *record_ptr;
 
     if (write_block_of_data_to_data_block_given_its_ptr(data_block_ptr, data_block) != SUCCESS)
         return ERROR;
@@ -414,7 +413,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
     {
         closeBitmap2();
-        return ERROR;
+        return (iNode *)INVALID_INODE_PTR;
     }
 
     if (getBitmap2(BITMAP_INODE, inode_number) == 0)
@@ -442,7 +441,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     inode_ptr->reservado = *((DWORD *)(sector_buffer + inode_start + 28));
 
     if (closeBitmap2() != SUCCESS)
-        return ERROR;
+        return (iNode *)INVALID_INODE_PTR;
 
     return inode_ptr;
 }
@@ -649,7 +648,6 @@ int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *
 
 int initialize_new_block_of_data_block_ptrs_and_get_its_number()
 {
-    DWORD new_ptr = INVALID_PTR;
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
 
     char emptyBuffer[SECTOR_SIZE];
@@ -670,7 +668,7 @@ int initialize_new_block_of_data_block_ptrs_and_get_its_number()
 
     for (int i = 0; i < block_size; i++)
     {
-        int success = write_sector(new_block_number * block_size + i, emptyBuffer);
+        int success = write_sector(new_block_number * block_size + i, (unsigned char *)emptyBuffer);
         if (success != 0)
         {
             closeBitmap2();
@@ -679,7 +677,6 @@ int initialize_new_block_of_data_block_ptrs_and_get_its_number()
     }
 
     if (setBitmap2(BITMAP_DADOS, new_block_number, 1) != SUCCESS)
-        ;
     {
         closeBitmap2();
         return ERROR;
@@ -790,7 +787,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 return ERROR;
             }
             if (setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 1) != SUCCESS)
-                ;
             {
                 closeBitmap2();
                 free(inode);
@@ -888,7 +884,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 {
                     if ((ptrs[i] = searchBitmap2(BITMAP_DADOS, 0)) <= 0)
                     {
-                        closeBitmap2;
+                        closeBitmap2();
                         free(inode);
                         return ERROR;
                     }
@@ -1071,14 +1067,15 @@ int ghost_create2(char *filename)
         {
             free(new_record_ptr);
             return ERROR;
-
-            free(new_record_ptr);
-        }
-        else
-        {
-            delete2(filename);
-            ghost_create2(filename);
         }
 
-        return SUCCESS;
+        free(new_record_ptr);
+
+        return SUCCESS
+    }
+    else
+    {
+        delete2(filename);
+        return ghost_create2(filename);
+    }
 }
