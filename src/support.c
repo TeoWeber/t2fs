@@ -496,7 +496,7 @@ int read_block_from_data_block_given_its_ptr(int ptr, DWORD data_block_ptr, int 
         {
             for (int i = 0; i < SECTOR_SIZE; i++)
             {
-                if (read_bytes < bytes && sector * SECTOR_SIZE + i >= ptr) // ainda nao leu todos
+                if (read_bytes < bytes && (int)sector * SECTOR_SIZE + i >= ptr) // ainda nao leu todos
                 {
                     buffer[read_bytes] = sector_buffer[i];
                     read_bytes++;
@@ -968,7 +968,6 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     WORD super_block_size = partitions[mounted_partition_index].super_block.superblockSize;
     WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
     WORD data_block_bitmap_size = partitions[mounted_partition_index].super_block.freeBlocksBitmapSize;
-    WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
 
     DWORD partition_boot_sector_ptr = partitions[mounted_partition_index].boot_sector;
     WORD inode_disk_area_ptr_offset_in_partition = block_size * (super_block_size + inode_bitmap_size + data_block_bitmap_size);
