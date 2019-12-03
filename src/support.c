@@ -304,8 +304,8 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
                                               (DWORD)sizeof(Record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    char data_block[block_size * SECTOR_SIZE];
+    int block_size = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    char data_block[block_size];
     if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size, data_block) != block_size)
         return INVALID_RECORD_PTR;
 
