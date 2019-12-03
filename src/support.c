@@ -296,6 +296,35 @@ DWORD get_free_inode_number_in_partition()
     return inode_number;
 }
 
+DWORD get_free_data_block_number_in_partition()
+{
+    DWORD data_block_number;
+
+    if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
+    { // Sem espaço livre!
+        closeBitmap2();
+        return 0; // ERROR
+    }
+
+    data_block_number = searchBitmap2(BITMAP_DADOS, 0); // Procura por uma posição vazia no Bitmap e retorna sua posição
+    if (data_block_number <= 0)
+    { // Sem espaço livre!
+        closeBitmap2();
+        return 0; // ERROR
+    }
+
+    if (setBitmap2(BITMAP_DADOS, data_block_number, 1) != SUCCESS) // Ativa este inode no Bitmap da partição
+    {
+        closeBitmap2();
+        return 0; // ERROR
+    }
+
+    if (closeBitmap2() != SUCCESS)
+        return 0; // ERROR
+
+    return data_block_number;
+}
+
 // Convenção de uso: O primeiro registro da root dir é o i-th registro, i == 0
 Record *get_i_th_record_ptr_from_root_dir(DWORD i)
 {
@@ -304,9 +333,9 @@ Record *get_i_th_record_ptr_from_root_dir(DWORD i)
                                               (DWORD)sizeof(Record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
-    int block_size = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
-    char data_block[block_size];
-    if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size, data_block) != block_size)
+    int block_size_in_bytes = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    char data_block[block_size_in_bytes];
+    if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size_in_bytes, data_block) != block_size_in_bytes)
         return INVALID_RECORD_PTR;
 
     Record *record_ptr = (Record *)malloc(sizeof(Record));
@@ -322,9 +351,9 @@ int set_i_th_record_ptr_on_root_dir_given_itself(DWORD i, Record *record_ptr)
                                               (DWORD)sizeof(Record);
     DWORD data_block_ptr = get_i_th_data_block_ptr_from_file_given_file_inode_number(i / number_of_records_per_data_blocks, 0);
 
-    int block_size = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
-    char data_block[block_size];
-    if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size, data_block) != block_size)
+    int block_size_in_bytes = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    char data_block[block_size_in_bytes];
+    if (read_block_from_data_block_given_its_ptr(0, data_block_ptr, block_size_in_bytes, data_block) != block_size_in_bytes)
         return ERROR;
 
     ((Record *)data_block)[i % number_of_records_per_data_blocks] = *record_ptr;
@@ -343,8 +372,8 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
     if (inode == (iNode *)INVALID_INODE_PTR)
         return INVALID_PTR;
 
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    int ptr_per_block = block_size * 64;
+    int block_size_in_bytes = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    int ptr_per_block = block_size_in_bytes / sizeof(DWORD);
 
     if (i == 1)
     {
@@ -446,6 +475,22 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     return inode_ptr;
 }
 
+int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD block_of_data_block_ptrs_ptr, DWORD ptr)
+{
+    unsigned char sector_buffer[SECTOR_SIZE];
+    int block_size = partitions[mounted_partition_index].super_block.blockSize;
+
+    if (read_sector(block_of_data_block_ptrs_ptr + i * sizeof(DWORD) / SECTOR_SIZE, sector_buffer) != SUCCESS)
+        return ERROR;
+
+    insert_DWORD_value_in_its_position_on_buffer(ptr, (i % (SECTOR_SIZE / sizeof(DWORD))) * 4, sector_buffer);
+
+    if (write_sector(block_of_data_block_ptrs_ptr + i * sizeof(DWORD) / SECTOR_SIZE, sector_buffer) != SUCCESS)
+        return ERROR;
+
+    return SUCCESS;
+}
+
 void get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs)
 {
     unsigned char sector_buffer[SECTOR_SIZE];
@@ -455,42 +500,57 @@ void get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block
     int i;
     for (i = 0; i < block_size; i++)
     {
-        int sector = i + block_of_data_block_ptrs_ptr * block_size;
-        read_sector(sector, sector_buffer);
+        if (read_sector(block_of_data_block_ptrs_ptr + i, sector_buffer) != SUCCESS)
+            return ERROR;
 
         int j;
         for (j = 0; j < ptr_per_sector; j++)
-            array_of_data_block_ptrs[j + i * ptr_per_sector] = *((DWORD *)(sector_buffer + j * 4));
+            array_of_data_block_ptrs[j + i * ptr_per_sector] = *((DWORD *)(sector_buffer + j * sizeof(DWORD)));
     }
+}
+
+int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer)
+{
+    int block_size = partitions[mounted_partition_index].super_block.blockSize;
+    int written_bytes = 0;
+
+    unsigned char sector_buffer[SECTOR_SIZE];
+    for (int sector = 0; sector < block_size; sector++)
+    {
+        memset((void *)sector_buffer, '\0', SECTOR_SIZE);
+        for (int i = 0; i < SECTOR_SIZE; i++)
+        {
+            sector_buffer[i] = buffer[written_bytes];
+            written_bytes++;
+        }
+
+        if (write_sector(data_block_ptr + sector, sector_buffer) != SUCCESS)
+            return ERROR;
+    }
+    return SUCCESS;
 }
 
 int read_block_from_data_block_given_its_ptr(int ptr, int data_block_ptr, int bytes, char *buffer)
 {
-    int read_sectors = 0;
-    int read_bytes = 0;
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    int sector = data_block_ptr * block_size + (ptr / SECTOR_SIZE);
+    int read_bytes = 0;
 
-    unsigned char block_buffer[SECTOR_SIZE];
-    while (read_sectors < block_size)
+    unsigned char sector_buffer[SECTOR_SIZE];
+    for (int sector = 0; sector < block_size; sector++)
     {
-        int success = read_sector(sector, block_buffer);
-        if (success == 0)
+        if (read_sector(data_block_ptr + sector, sector_buffer) == SUCCESS)
         {
-            int first = ptr - read_sectors * SECTOR_SIZE;
-            int i;
-            for (i = first; i < SECTOR_SIZE; i++)
+            for (int i = 0; i < SECTOR_SIZE; i++)
             {
                 if (read_bytes < bytes) // ainda nao leu todos
                 {
-                    buffer[read_bytes] = block_buffer[i];
-                    read_bytes += 1;
-                    ptr += 1;
+                    buffer[read_bytes] = sector_buffer[i];
+                    read_bytes++;
                 }
             }
-            sector = data_block_ptr * block_size + (ptr / SECTOR_SIZE);
         }
-        read_sectors += 1;
+        else
+            break;
     }
 
     return read_bytes;
@@ -500,13 +560,13 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
 {
     int read_bytes = 0, remaining_bytes = n;
     int curr_byte = 0;
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    char aux_buff[block_size * SECTOR_SIZE];
+    int block_size_in_bytes = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    char aux_buff[block_size_in_bytes];
 
     int curr_block, curr_ptr;
-    int ptr_per_block = block_size * 64;
-    curr_block = 1 + ptr / (block_size * SECTOR_SIZE);
-    curr_ptr = ptr - (curr_block - 1) * (block_size * SECTOR_SIZE);
+    int ptr_per_block = block_size_in_bytes / sizeof(DWORD);
+    curr_block = 1 + ptr / (block_size_in_bytes);
+    curr_ptr = ptr - (curr_block - 1) * (block_size_in_bytes);
 
     // ponteiros diretos
     if (curr_block == 1)
@@ -530,7 +590,7 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
 
     if (curr_block == 2)
     {
-        curr_ptr = ptr - (curr_block - 1) * (block_size * SECTOR_SIZE);
+        curr_ptr = ptr - (curr_block - 1) * (block_size_in_bytes);
         read_bytes = read_block_from_data_block_given_its_ptr(curr_ptr, inode.dataPtr[curr_block - 1], n, aux_buff);
         int i;
         for (i = 0; i < read_bytes; i++)
@@ -557,7 +617,7 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
         int i;
         for (i = curr_block - 3; i < ptr_per_block; i++)
         {
-            curr_ptr = ptr - (curr_block - 1) * (block_size * SECTOR_SIZE);
+            curr_ptr = ptr - (curr_block - 1) * (block_size_in_bytes);
             read_bytes = read_block_from_data_block_given_its_ptr(curr_ptr, inode.dataPtr[curr_block - 1], n, aux_buff);
             int j;
             for (j = 0; j < read_bytes; j++)
@@ -571,7 +631,7 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
             }
 
             ptr += read_bytes;
-            curr_block = 1 + ptr / (block_size * SECTOR_SIZE);
+            curr_block = 1 + ptr / (block_size_in_bytes);
         }
     }
 
@@ -594,7 +654,7 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
             int j;
             for (j = first; j < ptr_per_block && read_bytes < n; j++)
             {
-                curr_ptr = ptr - (curr_block - 1) * (block_size * SECTOR_SIZE);
+                curr_ptr = ptr - (curr_block - 1) * (block_size_in_bytes);
                 read_bytes = read_block_from_data_block_given_its_ptr(curr_ptr, ptrs[j], n, aux_buff);
 
                 int k;
@@ -609,7 +669,7 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
 
                     ptr += read_bytes;
                     if (remaining_bytes > 0)
-                        curr_block = 1 + ptr / (block_size * SECTOR_SIZE);
+                        curr_block = 1 + ptr / (block_size_in_bytes);
                 }
             }
         }
@@ -620,72 +680,28 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
     return read_bytes;
 }
 
-int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer)
-{
-    unsigned char sector_buffer[SECTOR_SIZE];
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    int sector = data_block_ptr * block_size;
-    int written_sectors = 0, written_bytes = 0;
-
-    while (written_sectors < block_size)
-    {
-        // copia o buffer para escrever no setor
-        int i;
-        for (i = 0; i < SECTOR_SIZE; i++)
-        {
-            sector_buffer[i] = buffer[written_bytes];
-            written_bytes += 1;
-        }
-
-        if (write_sector(sector, sector_buffer) != SUCCESS)
-            return ERROR;
-
-        sector += 1;
-        written_sectors += 1;
-    }
-    return SUCCESS;
-}
-
 int initialize_new_block_of_data_block_ptrs_and_get_its_number()
 {
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
 
+    DWORD data_block_number_aux_buffer;
+    DWORD data_block_ptr_aux_buffer;
+    if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
+        return ERROR;
+    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+        return ERROR;
+
     char emptyBuffer[SECTOR_SIZE];
     memset((void *)emptyBuffer, '\0', SECTOR_SIZE);
 
-    if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
-    {
-        closeBitmap2();
-        return ERROR;
-    }
-
-    int new_block_number = searchBitmap2(BITMAP_DADOS, 0);
-    if (new_block_number <= 0)
-    {
-        closeBitmap2();
-        return ERROR;
-    }
-
     for (int i = 0; i < block_size; i++)
     {
-        int success = write_sector(new_block_number * block_size + i, (unsigned char *)emptyBuffer);
+        int success = write_sector(data_block_ptr_aux_buffer, (unsigned char *)emptyBuffer);
         if (success != 0)
-        {
-            closeBitmap2();
             return ERROR;
-        }
     }
 
-    if (setBitmap2(BITMAP_DADOS, new_block_number, 1) != SUCCESS)
-    {
-        closeBitmap2();
-        return ERROR;
-    }
-
-    if (closeBitmap2() != SUCCESS)
-        return ERROR;
-
-    return new_block_number;
+    return data_block_number_aux_buffer;
 }
 
 void insert_DWORD_value_in_its_position_on_buffer(DWORD dword_value, int starting_pos, unsigned char *block_buffer)
@@ -698,59 +714,6 @@ void insert_DWORD_value_in_its_position_on_buffer(DWORD dword_value, int startin
     block_buffer[starting_pos + 3] = aux_ptr[3];
 }
 
-int update_inode_on_disk(int inode_number, iNode inode)
-{
-    SuperBlock super_block = partitions[mounted_partition_index].super_block;
-    int block_size = super_block.blockSize;
-    int super_block_size = super_block.superblockSize;
-    int block_bitmap_size = super_block.freeBlocksBitmapSize;
-    int inode_bitmap_size = super_block.freeInodeBitmapSize;
-
-    int inode_start;
-    int inode_disk_area = block_size * (super_block_size + block_bitmap_size + inode_bitmap_size);
-    int sector = inode_disk_area + inode_number / 8;
-
-    unsigned char sector_buffer[SECTOR_SIZE];
-    int success = read_sector(sector, sector_buffer);
-    if (success != 0)
-        return ERROR;
-
-    inode_start = (inode_number % 8) * 32;
-
-    insert_DWORD_value_in_its_position_on_buffer(inode.blocksFileSize, inode_start, sector_buffer);
-    insert_DWORD_value_in_its_position_on_buffer(inode.bytesFileSize, inode_start + 4, sector_buffer);
-    insert_DWORD_value_in_its_position_on_buffer(inode.dataPtr[0], inode_start + 8, sector_buffer);
-    insert_DWORD_value_in_its_position_on_buffer(inode.dataPtr[1], inode_start + 12, sector_buffer);
-    insert_DWORD_value_in_its_position_on_buffer(inode.singleIndPtr, inode_start + 16, sector_buffer);
-    insert_DWORD_value_in_its_position_on_buffer(inode.doubleIndPtr, inode_start + 20, sector_buffer);
-
-    success = write_sector(sector, sector_buffer);
-    if (success != 0)
-        return ERROR;
-
-    return SUCCESS;
-}
-
-int write_new_data_block_ptr_to_data_block_given_its_ptr(int i, DWORD data_block_ptr, DWORD ptr)
-{
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    int sector = data_block_ptr * block_size + (i * 4) / SECTOR_SIZE;
-
-    unsigned char block_buffer[SECTOR_SIZE];
-
-    int success = read_sector(sector, block_buffer);
-    if (success != 0)
-        return ERROR;
-
-    insert_DWORD_value_in_its_position_on_buffer(ptr, (i % 64) * 4, block_buffer);
-
-    success = write_sector(sector, block_buffer);
-    if (success != 0)
-        return ERROR;
-
-    return SUCCESS;
-}
-
 int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_number, char *buffer)
 {
     iNode *inode;
@@ -758,45 +721,34 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         return ERROR;
 
     int written_bytes = 0, remaining_bytes = n;
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
-    int ptr_per_block = block_size * 64;
+    int block_size_in_bytes = partitions[mounted_partition_index].super_block.blockSize * SECTOR_SIZE;
+    int ptr_per_block = block_size_in_bytes / sizeof(DWORD);
 
-    char aux_buff[block_size * SECTOR_SIZE];
+    char aux_buff[block_size_in_bytes];
 
     int curr_block, curr_ptr;
     DWORD first_ptr = ptr;
 
-    if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
-    {
-        closeBitmap2();
-        free(inode);
-        return ERROR;
-    }
+    curr_block = 1 + ptr / (block_size_in_bytes);
+    curr_ptr = ptr - (curr_block - 1) * block_size_in_bytes;
 
-    curr_block = 1 + ptr / (block_size * SECTOR_SIZE);
-    curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
+    DWORD data_block_number_aux_buffer;
+    DWORD data_block_ptr_aux_buffer;
     // ponteiros diretos
     if (curr_block == 1)
     {
         if (inode->dataPtr[0] == INVALID_PTR)
         {
-            if ((inode->dataPtr[0] = searchBitmap2(BITMAP_DADOS, 0)) <= 0)
-            {
-                closeBitmap2();
-                free(inode);
+            if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
                 return ERROR;
-            }
-            if (setBitmap2(BITMAP_DADOS, inode->dataPtr[0], 1) != SUCCESS)
-            {
-                closeBitmap2();
-                free(inode);
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
                 return ERROR;
-            }
+            inode->dataPtr[0] = data_block_ptr_aux_buffer;
             inode->blocksFileSize += 1;
         }
 
         int i;
-        for (i = curr_ptr; i < block_size * SECTOR_SIZE && remaining_bytes > 0; i++)
+        for (i = curr_ptr; i < block_size_in_bytes && remaining_bytes > 0; i++)
         {
             aux_buff[i] = buffer[written_bytes];
             written_bytes += 1;
@@ -805,7 +757,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 
         if (write_block_of_data_to_data_block_given_its_ptr(inode->dataPtr[0], aux_buff) != SUCCESS)
         {
-            closeBitmap2();
             free(inode);
             return ERROR;
         }
@@ -817,26 +768,19 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 
     if (curr_block == 2)
     {
-        curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
+        curr_ptr = ptr - (curr_block - 1) * block_size_in_bytes;
         if (inode->dataPtr[1] == INVALID_PTR)
         {
-            if ((inode->dataPtr[1] = searchBitmap2(BITMAP_DADOS, 0)) <= 0)
-            {
-                closeBitmap2();
-                free(inode);
+            if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
                 return ERROR;
-            }
-            if (setBitmap2(BITMAP_DADOS, inode->dataPtr[1], 1) != SUCCESS)
-            {
-                closeBitmap2();
-                free(inode);
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
                 return ERROR;
-            }
+            inode->dataPtr[1] = data_block_ptr_aux_buffer;
             inode->blocksFileSize += 1;
         }
 
         int i;
-        for (i = curr_ptr; i < block_size * SECTOR_SIZE && remaining_bytes > 0; i++)
+        for (i = curr_ptr; i < block_size_in_bytes && remaining_bytes > 0; i++)
         {
             aux_buff[i] = buffer[written_bytes];
             written_bytes += 1;
@@ -845,7 +789,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 
         if (write_block_of_data_to_data_block_given_its_ptr(inode->dataPtr[1], aux_buff) != SUCCESS)
         {
-            closeBitmap2();
             free(inode);
             return ERROR;
         }
@@ -861,14 +804,13 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         // inicializa novo bloco de ponteiros simples se necessário
         if (inode->singleIndPtr == INVALID_PTR)
         {
-            int new_ptr = initialize_new_block_of_data_block_ptrs_and_get_its_number();
-            if (new_ptr < 0)
-            {
-                closeBitmap2();
-                free(inode);
+            DWORD data_block_number_aux_buffer;
+            DWORD data_block_ptr_aux_buffer;
+            if ((data_block_number_aux_buffer = initialize_new_block_of_data_block_ptrs_and_get_its_number()) == 0)
                 return ERROR;
-            }
-            inode->singleIndPtr = (DWORD)new_ptr;
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                return ERROR;
+            inode->singleIndPtr = data_block_ptr_aux_buffer;
         }
 
         DWORD ptrs[ptr_per_block];
@@ -879,28 +821,21 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         {
             if (remaining_bytes > 0)
             {
-                curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
+                curr_ptr = ptr - (curr_block - 1) * block_size_in_bytes;
                 if (ptrs[i] == INVALID_PTR)
                 {
-                    if ((ptrs[i] = searchBitmap2(BITMAP_DADOS, 0)) <= 0)
-                    {
-                        closeBitmap2();
-                        free(inode);
+                    if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
                         return ERROR;
-                    }
-                    if (setBitmap2(BITMAP_DADOS, ptrs[i], 1) != SUCCESS)
-                    {
-                        closeBitmap2();
-                        free(inode);
+                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
                         return ERROR;
-                    }
+                    ptrs[i] = data_block_ptr_aux_buffer;
                     inode->blocksFileSize += 1;
 
-                    write_new_data_block_ptr_to_data_block_given_its_ptr(i, inode->singleIndPtr, ptrs[i]);
+                    write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(i, inode->singleIndPtr, ptrs[i]);
                 }
 
                 int j;
-                for (j = curr_ptr; j < block_size * SECTOR_SIZE && remaining_bytes > 0; j++)
+                for (j = curr_ptr; j < block_size_in_bytes && remaining_bytes > 0; j++)
                 {
                     aux_buff[j] = buffer[written_bytes];
                     written_bytes += 1;
@@ -909,7 +844,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 
                 if (write_block_of_data_to_data_block_given_its_ptr(ptrs[i], aux_buff) != SUCCESS)
                 {
-                    closeBitmap2();
                     free(inode);
                     return ERROR;
                 }
@@ -927,14 +861,13 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         // inicializa novo bloco de ponteiros duplos se necessário
         if (inode->doubleIndPtr == INVALID_PTR)
         {
-            int new_ptr = initialize_new_block_of_data_block_ptrs_and_get_its_number();
-            if (new_ptr < 0)
-            {
-                closeBitmap2();
-                free(inode);
+            DWORD data_block_number_aux_buffer;
+            DWORD data_block_ptr_aux_buffer;
+            if ((data_block_number_aux_buffer = initialize_new_block_of_data_block_ptrs_and_get_its_number()) == 0)
                 return ERROR;
-            }
-            inode->doubleIndPtr = (DWORD)new_ptr;
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                return ERROR;
+            inode->doubleIndPtr = data_block_ptr_aux_buffer;
         }
 
         DWORD ind_ptrs[ptr_per_block];
@@ -948,16 +881,15 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
             {
                 if (ind_ptrs[i] == INVALID_PTR)
                 {
-                    int new_ptr = initialize_new_block_of_data_block_ptrs_and_get_its_number();
-                    if (new_ptr < 0)
-                    {
-                        closeBitmap2();
-                        free(inode);
+                    DWORD data_block_number_aux_buffer;
+                    DWORD data_block_ptr_aux_buffer;
+                    if ((data_block_number_aux_buffer = initialize_new_block_of_data_block_ptrs_and_get_its_number()) == 0)
                         return ERROR;
-                    }
-                    ind_ptrs[i] = (DWORD)new_ptr;
+                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                        return ERROR;
+                    ind_ptrs[i] = data_block_ptr_aux_buffer;
 
-                    write_new_data_block_ptr_to_data_block_given_its_ptr(i, inode->doubleIndPtr, ind_ptrs[i]);
+                    write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(i, inode->doubleIndPtr, ind_ptrs[i]);
                 }
 
                 DWORD ptrs[ptr_per_block];
@@ -969,28 +901,21 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 {
                     if (remaining_bytes > 0)
                     {
-                        curr_ptr = ptr - (curr_block - 1) * block_size * SECTOR_SIZE;
+                        curr_ptr = ptr - (curr_block - 1) * block_size_in_bytes;
                         if (ptrs[j] == INVALID_PTR)
                         {
-                            if ((ptrs[j] = searchBitmap2(BITMAP_DADOS, 0)) <= 0)
-                            {
-                                closeBitmap2();
-                                free(inode);
+                            if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
                                 return ERROR;
-                            }
-                            if (setBitmap2(BITMAP_DADOS, ptrs[j], 1) != SUCCESS)
-                            {
-                                closeBitmap2();
-                                free(inode);
+                            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
                                 return ERROR;
-                            }
+                            ptrs[j] = data_block_ptr_aux_buffer;
                             inode->blocksFileSize += 1;
 
-                            write_new_data_block_ptr_to_data_block_given_its_ptr(j, ind_ptrs[i], ptrs[j]);
+                            write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(j, ind_ptrs[i], ptrs[j]);
                         }
 
                         int k;
-                        for (k = curr_ptr; k < block_size * SECTOR_SIZE && remaining_bytes > 0; k++)
+                        for (k = curr_ptr; k < block_size_in_bytes && remaining_bytes > 0; k++)
                         {
                             aux_buff[k] = buffer[written_bytes];
                             written_bytes += 1;
@@ -999,7 +924,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 
                         if (write_block_of_data_to_data_block_given_its_ptr(ptrs[i], aux_buff) != SUCCESS)
                         {
-                            closeBitmap2();
                             free(inode);
                             return ERROR;
                         }
@@ -1019,8 +943,6 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
     update_inode_on_disk(inode_number, *inode);
 
     free(inode);
-    if (closeBitmap2() != SUCCESS)
-        return ERROR;
 
     return written_bytes;
 }
@@ -1078,4 +1000,79 @@ int ghost_create2(char *filename)
         delete2(filename);
         return ghost_create2(filename);
     }
+}
+
+int update_inode_on_disk(int inode_number, iNode inode)
+{
+    WORD block_size = partitions[mounted_partition_index].super_block.blockSize;
+    WORD super_block_size = partitions[mounted_partition_index].super_block.superblockSize;
+    WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
+    WORD data_block_bitmap_size = partitions[mounted_partition_index].super_block.freeBlocksBitmapSize;
+
+    DWORD partition_boot_sector_ptr = partitions[mounted_partition_index].boot_sector;
+    WORD inode_disk_area_ptr_offset_in_partition = block_size * (super_block_size + inode_bitmap_size + data_block_bitmap_size);
+    WORD inode_block_ptr_offset_in_inode_disk_area = inode_number * sizeof(iNode) / SECTOR_SIZE;
+
+    unsigned int inode_block_ptr = (unsigned int)partition_boot_sector_ptr +
+                                   (unsigned int)inode_disk_area_ptr_offset_in_partition +
+                                   (unsigned int)inode_block_ptr_offset_in_inode_disk_area;
+
+    unsigned char sector_buffer[SECTOR_SIZE];
+    int success = read_sector(inode_block_ptr, sector_buffer);
+    if (success != 0)
+        return ERROR;
+
+    int inode_entry_offset_in_inode_block = (inode_number % (sizeof(iNode) / SECTOR_SIZE)) * sizeof(iNode);
+
+    for (int i = 0; i < sizeof(iNode) / sizeof(DWORD); i++)
+    {
+        insert_DWORD_value_in_its_position_on_buffer(((DWORD *)inode)[i], inode_entry_offset_in_inode_block + i * sizeof(DWORD), sector_buffer);
+    }
+
+    if (write_sector(inode_block_ptr, sector_buffer) != SUCCESS)
+        return ERROR;
+
+    return SUCCESS;
+}
+
+DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number)
+{
+    WORD block_size = partitions[mounted_partition_index].super_block.blockSize;
+    WORD super_block_size = partitions[mounted_partition_index].super_block.superblockSize;
+    WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
+    WORD data_block_bitmap_size = partitions[mounted_partition_index].super_block.freeBlocksBitmapSize;
+    DWORD inode_disk_area_size = partitions[mounted_partition_index].number_of_inodes * sizeof(iNode) / SECTOR_SIZE;
+
+    DWORD partition_boot_sector_ptr = partitions[mounted_partition_index].boot_sector;
+    DWORD data_block_disk_area_ptr_offset_in_partition = (DWORD)block_size * ((DWORD)super_block_size +
+                                                                              (DWORD)inode_bitmap_size +
+                                                                              (DWORD)data_block_bitmap_size +
+                                                                              inode_disk_area_size);
+    DWORD data_block_ptr_offset_in_data_block_disk_area = data_block_number * (DWORD)block_size;
+
+    DWORD data_block_ptr = partition_boot_sector_ptr +
+                           data_block_disk_area_ptr_offset_in_partition +
+                           data_block_ptr_offset_in_data_block_disk_area;
+
+    return data_block_ptr;
+}
+
+DWORD get_data_block_number_given_data_block_ptr(DWORD data_block_ptr)
+{
+    WORD block_size = partitions[mounted_partition_index].super_block.blockSize;
+    WORD super_block_size = partitions[mounted_partition_index].super_block.superblockSize;
+    WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
+    WORD data_block_bitmap_size = partitions[mounted_partition_index].super_block.freeBlocksBitmapSize;
+    DWORD inode_disk_area_size = partitions[mounted_partition_index].number_of_inodes * sizeof(iNode) / SECTOR_SIZE;
+
+    DWORD partition_boot_sector_ptr = partitions[mounted_partition_index].boot_sector;
+    DWORD data_block_disk_area_ptr_offset_in_partition = (DWORD)block_size * ((DWORD)super_block_size +
+                                                                              (DWORD)inode_bitmap_size +
+                                                                              (DWORD)data_block_bitmap_size +
+                                                                              inode_disk_area_size);
+
+    DWORD data_block_ptr_offset_in_data_block_disk_area = data_block_ptr - data_block_disk_area_ptr_offset_in_partition - partition_boot_sector_ptr;
+    DWORD data_block_number = data_block_ptr_offset_in_data_block_disk_area / (DWORD)block_size;
+
+    return data_block_number;
 }
