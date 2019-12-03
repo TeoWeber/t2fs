@@ -390,7 +390,8 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
     else if (i <= (DWORD)(ptr_per_block + 2))
     {
         DWORD ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->singleIndPtr, ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs) != SUCCESS)
+            return ERROR;
 
         free(inode);
         return ptrs[i - 3];
@@ -398,14 +399,16 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
     else if (i > (DWORD)(ptr_per_block + 2))
     {
         DWORD ind_ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->doubleIndPtr, ind_ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtr, ind_ptrs) != SUCCESS)
+            return ERROR;
 
         int ptr_block_pos;
         i -= (ptr_per_block + 2);
         ptr_block_pos = i / ptr_per_block;
 
         DWORD ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[ptr_block_pos], ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[ptr_block_pos], ptrs) != SUCCESS)
+            return ERROR;
 
         int block_pos = i % ptr_per_block;
         free(inode);
@@ -478,7 +481,6 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
 int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD block_of_data_block_ptrs_ptr, DWORD ptr)
 {
     unsigned char sector_buffer[SECTOR_SIZE];
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
 
     if (read_sector(block_of_data_block_ptrs_ptr + i * sizeof(DWORD) / SECTOR_SIZE, sector_buffer) != SUCCESS)
         return ERROR;
@@ -491,7 +493,7 @@ int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD 
     return SUCCESS;
 }
 
-void get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs)
+int get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs)
 {
     unsigned char sector_buffer[SECTOR_SIZE];
     int block_size = partitions[mounted_partition_index].super_block.blockSize;
@@ -507,6 +509,7 @@ void get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block
         for (j = 0; j < ptr_per_sector; j++)
             array_of_data_block_ptrs[j + i * ptr_per_sector] = *((DWORD *)(sector_buffer + j * sizeof(DWORD)));
     }
+    return SUCCESS
 }
 
 int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer)
@@ -536,13 +539,13 @@ int read_block_from_data_block_given_its_ptr(int ptr, int data_block_ptr, int by
     int read_bytes = 0;
 
     unsigned char sector_buffer[SECTOR_SIZE];
-    for (int sector = 0; sector < block_size; sector++)
+    for (int sector = ptr / SECTOR_SIZE; sector <  1 + (bytes + ptr - 1) / SECTOR_SIZE; sector++)
     {
         if (read_sector(data_block_ptr + sector, sector_buffer) == SUCCESS)
         {
             for (int i = 0; i < SECTOR_SIZE; i++)
             {
-                if (read_bytes < bytes) // ainda nao leu todos
+                if (read_bytes < bytes && sector * SECTOR_SIZE + i >= ptr) // ainda nao leu todos
                 {
                     buffer[read_bytes] = sector_buffer[i];
                     read_bytes++;
@@ -612,7 +615,8 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
     if (curr_block > 2 && curr_block <= ptr_per_block + 2)
     {
         DWORD ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs) != SUCCESS)
+            return ERROR;
 
         int i;
         for (i = curr_block - 3; i < ptr_per_block; i++)
@@ -642,13 +646,15 @@ int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *
     if (curr_block > ptr_per_block + 2)
     {
         DWORD ptrs[ptr_per_block], ind_ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtr, ind_ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtr, ind_ptrs) != SUCCESS)
+            return ERROR;
 
         int first = (curr_block - ptr_per_block - 3) / ptr_per_block;
         int i;
         for (i = first; i < ptr_per_block && read_bytes < n; i++)
         {
-            get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[i], ptrs);
+            if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[i], ptrs) != SUCCESS)
+                return ERROR;
 
             first = (curr_block - ptr_per_block - i - 3) - i * ptr_per_block;
             int j;
@@ -814,7 +820,8 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         }
 
         DWORD ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->singleIndPtr, ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs) != SUCCESS)
+            return ERROR;
 
         int i;
         for (i = curr_block - 3; i < ptr_per_block; i++)
@@ -871,7 +878,8 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         }
 
         DWORD ind_ptrs[ptr_per_block];
-        get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->doubleIndPtr, ind_ptrs);
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtrs, ind_ptrs) != SUCCESS)
+            return ERROR;
 
         int first = (curr_block - ptr_per_block - 3) / ptr_per_block;
         int i;
@@ -893,7 +901,8 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 }
 
                 DWORD ptrs[ptr_per_block];
-                get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[i], ptrs);
+                if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(ind_ptrs[i], ptrs) != SUCCESS)
+                    return ERROR;
 
                 first = (curr_block - ptr_per_block - 3) - i * ptr_per_block;
                 int j;

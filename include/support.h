@@ -100,7 +100,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 
 int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD block_of_data_block_ptrs_ptr, DWORD ptr);
 
-void get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs);
+int get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs);
 
 int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer);
 
