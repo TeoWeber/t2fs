@@ -390,7 +390,7 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
     else if (i <= (DWORD)(ptr_per_block + 2))
     {
         DWORD ptrs[ptr_per_block];
-        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs) != SUCCESS)
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->singleIndPtr, ptrs) != SUCCESS)
             return ERROR;
 
         free(inode);
@@ -399,7 +399,7 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
     else if (i > (DWORD)(ptr_per_block + 2))
     {
         DWORD ind_ptrs[ptr_per_block];
-        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtr, ind_ptrs) != SUCCESS)
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->doubleIndPtr, ind_ptrs) != SUCCESS)
             return ERROR;
 
         int ptr_block_pos;
@@ -509,7 +509,7 @@ int get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_
         for (j = 0; j < ptr_per_sector; j++)
             array_of_data_block_ptrs[j + i * ptr_per_sector] = *((DWORD *)(sector_buffer + j * sizeof(DWORD)));
     }
-    return SUCCESS
+    return SUCCESS;
 }
 
 int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer)
@@ -535,7 +535,6 @@ int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *
 
 int read_block_from_data_block_given_its_ptr(int ptr, int data_block_ptr, int bytes, char *buffer)
 {
-    int block_size = partitions[mounted_partition_index].super_block.blockSize;
     int read_bytes = 0;
 
     unsigned char sector_buffer[SECTOR_SIZE];
@@ -820,7 +819,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         }
 
         DWORD ptrs[ptr_per_block];
-        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.singleIndPtr, ptrs) != SUCCESS)
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->singleIndPtr, ptrs) != SUCCESS)
             return ERROR;
 
         int i;
@@ -878,7 +877,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
         }
 
         DWORD ind_ptrs[ptr_per_block];
-        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtrs, ind_ptrs) != SUCCESS)
+        if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode->doubleIndPtr, ind_ptrs) != SUCCESS)
             return ERROR;
 
         int first = (curr_block - ptr_per_block - 3) / ptr_per_block;
@@ -1031,11 +1030,11 @@ int update_inode_on_disk(int inode_number, iNode inode)
     if (success != 0)
         return ERROR;
 
-    int inode_entry_offset_in_inode_block = (inode_number % (sizeof(iNode) / SECTOR_SIZE)) * sizeof(iNode);
+    int inode_entry_offset_in_inode_block = (inode_number % (SECTOR_SIZE / sizeof(iNode))) * sizeof(iNode);
 
-    for (int i = 0; i < sizeof(iNode) / sizeof(DWORD); i++)
+    for (unsigned int i = 0; i < sizeof(iNode) / sizeof(DWORD); i++)
     {
-        insert_DWORD_value_in_its_position_on_buffer(((DWORD *)inode)[i], inode_entry_offset_in_inode_block + i * sizeof(DWORD), sector_buffer);
+        insert_DWORD_value_in_its_position_on_buffer(((DWORD *)&inode)[i], inode_entry_offset_in_inode_block + i * sizeof(DWORD), sector_buffer);
     }
 
     if (write_sector(inode_block_ptr, sector_buffer) != SUCCESS)
