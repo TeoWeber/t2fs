@@ -176,7 +176,8 @@ int format_root_dir(int partition)
     iNode inode;
     define_empty_inode_from_inode_ptr(&inode);
 
-    inode.dataPtr[0] = get_data_block_ptr_given_data_block_number(0);
+    if ((inode.dataPtr[0]  = get_data_block_ptr_given_data_block_number(0)) == INVALID_PTR)
+        return ERROR;
     inode.blocksFileSize += 1;
 
     update_inode_on_disk(0, inode);
