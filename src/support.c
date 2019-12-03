@@ -170,19 +170,20 @@ int format_root_dir(int partition)
         return ERROR;
     }
 
+    if (setBitmap2(BITMAP_DADOS, 0, 1) != SUCCESS)
+    {
+        closeBitmap2();
+        return ERROR;
+    }
+
     if (closeBitmap2() != SUCCESS)
         return ERROR;
 
     iNode inode;
     define_empty_inode_from_inode_ptr(&inode);
 
-    DWORD data_block_number_aux_buffer;
-    DWORD data_block_ptr_aux_buffer;
-    if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) != 0)
+    if ((inode.dataPtr[0] = get_data_block_ptr_given_data_block_number(0)) == INVALID_PTR)
         return ERROR;
-    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
-        return ERROR;
-    inode.dataPtr[0] = data_block_ptr_aux_buffer;
     inode.blocksFileSize += 1;
 
     update_inode_on_disk(0, inode);
@@ -316,7 +317,7 @@ DWORD get_free_data_block_number_in_partition()
     }
 
     data_block_number = searchBitmap2(BITMAP_DADOS, 0); // Procura por uma posição vazia no Bitmap e retorna sua posição
-    if (data_block_number < 0)
+    if (data_block_number <= 0)
     { // Sem espaço livre!
         closeBitmap2();
         return 0; // ERROR
