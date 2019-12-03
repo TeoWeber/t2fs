@@ -96,15 +96,13 @@ DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD i
 
 FILE2 get_first_unused_handle();
 
-iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
-
 int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD block_of_data_block_ptrs_ptr, DWORD ptr);
 
 int get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_of_data_block_ptrs_ptr, DWORD *array_of_data_block_ptrs);
 
 int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *buffer);
 
-int read_block_from_data_block_given_its_ptr(int ptr, int data_block_ptr, int bytes, char *buffer);
+int read_block_from_data_block_given_its_ptr(int ptr, DWORD data_block_ptr, int bytes, char *buffer);
 
 int read_n_bytes_from_file_given_its_inode(DWORD ptr, int n, iNode inode, char *buffer);
 
@@ -117,6 +115,8 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
 boolean is_used_record_ptr(Record *record_ptr);
 
 int ghost_create2(char *filename);
+
+iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 
 int update_inode_on_disk(int inode_number, iNode inode);
 
