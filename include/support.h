@@ -125,4 +125,6 @@ DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number);
 
 DWORD get_data_block_number_given_data_block_ptr(DWORD data_block_ptr);
 
+int free_data_blocks_from_file_given_its_inode(iNode inode);
+
 #endif

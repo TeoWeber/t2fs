@@ -167,7 +167,34 @@ int delete2(char *filename)
 	if (record_ptr->TypeVal == TYPEVAL_INVALIDO)
 		return ERROR;
 
+	if (openBitmap2(partitions[mounted_partition_index].boot_sector) != SUCCESS)
+	{
+		closeBitmap2();
+		return ERROR;
+	}
+
+	if (setBitmap2(BITMAP_INODE, record_ptr->inodeNumber, 0) != SUCCESS)
+	{
+		closeBitmap2();
+		return ERROR;
+	}
+
+	if (closeBitmap2() != SUCCESS)
+		return ERROR;
+
+	iNode *inode_ptr;
+	if ((inode_ptr = get_inode_ptr_given_inode_number(record_ptr->inodeNumber)) == (iNode *)INVALID_INODE_PTR)
+		return ERROR;
+
+	if (free_data_blocks_from_file_given_its_inode(*inode_ptr) != SUCCESS)
+	{
+		free(inode_ptr);
+		return ERROR;
+	}
+
+	free(inode_ptr);
 	record_ptr->TypeVal = TYPEVAL_INVALIDO;
+
 	return SUCCESS;
 }
 
@@ -231,7 +258,10 @@ int read2(FILE2 handle, char *buffer, int size)
 
 	// verifica eof
 	if (file.current_ptr >= inode_ptr->bytesFileSize)
+	{
+		free(inode_ptr);
 		return ERROR;
+	}
 
 	// verifica se size > o restante do arquivo
 	if (size > (int)(inode_ptr->bytesFileSize - file.current_ptr))
@@ -239,7 +269,12 @@ int read2(FILE2 handle, char *buffer, int size)
 
 	// lê conteúdo e atualiza handle do arquivo
 	if (read_n_bytes_from_file_given_its_inode(file.current_ptr, size, *inode_ptr, buffer) == ERROR)
+	{
+		free(inode_ptr);
 		return ERROR;
+	}
+
+	free(inode_ptr);
 
 	file.current_ptr += size;
 	open_files[handle] = file;
@@ -324,6 +359,7 @@ int readdir2(DIRENT2 *dentry)
 
 	root_dir_entry_current_ptr++;
 	free(record_ptr);
+	free(inode_ptr);
 	return SUCCESS;
 }
 
@@ -380,6 +416,7 @@ int sln2(char *linkname, char *filename)
 		return ERROR;
 
 	int bytes_written = write_n_bytes_to_file_given_its_inode_number(0, strlen(filename), link_record_ptr->inodeNumber, filename);
+	free(link_inode_ptr);
 	if (bytes_written == ERROR)
 		return ERROR;
 
@@ -420,6 +457,7 @@ int hln2(char *linkname, char *filename)
 		return ERROR;
 
 	inode_ptr->RefCounter++;
+	free(inode_ptr);
 
 	return SUCCESS;
 }
