@@ -34,7 +34,7 @@ int format2(int partition, int sectors_per_block)
 	if (fill_partition_structure(partition, sectors_per_block) != SUCCESS) // Preenchemos os novos dados variáveis da partição (que não são fixados pelo MBR)
 		return ERROR;
 
-	if (write_sector((unsigned int)partitions[partition].boot_sector, (unsigned char *)&partitions[partition].super_block) != SUCCESS) // Escrevemos o superbloco no primeiro setor da partição a ser formatada
+	if (write_sector((unsigned int)partitions[partition].boot_sector, (BYTE *)&partitions[partition].super_block) != SUCCESS) // Escrevemos o superbloco no primeiro setor da partição a ser formatada
 		return ERROR;
 
 	if (reset_bitmaps(partition) != SUCCESS) // Zeramos os bitmaps de dados e de inodes
