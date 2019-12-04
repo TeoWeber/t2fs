@@ -59,7 +59,7 @@ int reset_partition_sectors(int partition)
     memset((void *)emptyBuffer, '\0', SECTOR_SIZE);
     for (DWORD sector_ptr = partitions[partition].boot_sector; sector_ptr <= partitions[partition].final_sector; sector_ptr++)
     {
-        if ((write_sector((unsigned int)sector_ptr, (BYTE *)emptyBuffer)) != SUCCESS)
+        if ((write_sector((unsigned int)sector_ptr, emptyBuffer)) != SUCCESS)
             return ERROR;
     }
     return SUCCESS;
@@ -249,7 +249,7 @@ Record *get_record_ptr_from_file_given_filename(char *filename)
     free(record_ptr);
 
     unsigned char unique_data_block[SECTOR_SIZE];
-    if (read_sector(unique_data_block_ptr, (BYTE *)unique_data_block) != SUCCESS)
+    if (read_sector(unique_data_block_ptr, unique_data_block) != SUCCESS)
         return INVALID_RECORD_PTR;
 
     return get_record_ptr_from_file_given_filename((char *)unique_data_block);
@@ -444,12 +444,12 @@ int write_data_block_ptr_to_block_of_data_block_ptrs_given_its_ptr(int i, DWORD 
 {
     unsigned char sector_buffer[SECTOR_SIZE];
 
-    if (read_sector(block_of_data_block_ptrs_ptr + i * sizeof(DWORD) / SECTOR_SIZE, (BYTE *)sector_buffer) != SUCCESS)
+    if (read_sector(block_of_data_block_ptrs_ptr + i * sizeof(DWORD) / SECTOR_SIZE, sector_buffer) != SUCCESS)
         return ERROR;
 
     insert_DWORD_value_in_its_position_on_buffer(ptr, (i % (SECTOR_SIZE / sizeof(DWORD))) * 4, sector_buffer);
 
-    if (write_sector((unsigned int)block_of_data_block_ptrs_ptr + (unsigned int)(i * sizeof(DWORD) / SECTOR_SIZE), (BYTE *)sector_buffer) != SUCCESS)
+    if (write_sector((unsigned int)block_of_data_block_ptrs_ptr + (unsigned int)(i * sizeof(DWORD) / SECTOR_SIZE), sector_buffer) != SUCCESS)
         return ERROR;
 
     return SUCCESS;
@@ -463,7 +463,7 @@ int get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(DWORD block_
 
     for (unsigned int i = 0; i < (unsigned int)block_size; i++)
     {
-        if (read_sector((unsigned int)block_of_data_block_ptrs_ptr + i, (BYTE *)sector_buffer) != SUCCESS)
+        if (read_sector((unsigned int)block_of_data_block_ptrs_ptr + i, sector_buffer) != SUCCESS)
             return ERROR;
 
         int j;
@@ -488,7 +488,7 @@ int write_block_of_data_to_data_block_given_its_ptr(DWORD data_block_ptr, char *
             written_bytes++;
         }
 
-        if (write_sector((unsigned int)data_block_ptr + sector, (BYTE *)sector_buffer) != SUCCESS)
+        if (write_sector((unsigned int)data_block_ptr + sector, sector_buffer) != SUCCESS)
             return ERROR;
     }
     return SUCCESS;
@@ -502,7 +502,7 @@ int read_block_from_data_block_given_its_ptr(int ptr, DWORD data_block_ptr, int 
     unsigned char sector_buffer[SECTOR_SIZE];
     for (unsigned int sector = (unsigned int)(ptr / SECTOR_SIZE); sector < (unsigned int)block_size; sector++)
     {
-        if (read_sector((unsigned int)data_block_ptr + sector, (BYTE *)sector_buffer) == SUCCESS)
+        if (read_sector((unsigned int)data_block_ptr + sector, sector_buffer) == SUCCESS)
         {
             for (int i = 0; i < SECTOR_SIZE; i++)
             {
@@ -663,7 +663,7 @@ int initialize_new_block_of_data_block_ptrs_and_get_its_number()
 
     for (int i = 0; i < block_size; i++)
     {
-        int success = write_sector((unsigned int)data_block_ptr_aux_buffer, (BYTE *)emptyBuffer);
+        int success = write_sector((unsigned int)data_block_ptr_aux_buffer, (unsigned char *)emptyBuffer);
         if (success != 0)
             return ERROR;
     }
@@ -1000,7 +1000,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number)
     }
 
     unsigned char sector_buffer[SECTOR_SIZE];
-    if (read_sector(inode_block_ptr, (BYTE *)sector_buffer) != 0)
+    if (read_sector(inode_block_ptr, sector_buffer) != 0)
     {
         closeBitmap2();
         return (iNode *)INVALID_INODE_PTR;
@@ -1031,7 +1031,7 @@ int update_inode_on_disk(int inode_number, iNode inode)
                                    (unsigned int)inode_block_ptr_offset_in_inode_disk_area;
 
     unsigned char sector_buffer[SECTOR_SIZE];
-    int success = read_sector(inode_block_ptr, (BYTE *)sector_buffer);
+    int success = read_sector(inode_block_ptr, sector_buffer);
     if (success != 0)
         return ERROR;
 
@@ -1042,7 +1042,7 @@ int update_inode_on_disk(int inode_number, iNode inode)
         insert_DWORD_value_in_its_position_on_buffer(((DWORD *)&inode)[i], inode_entry_offset_in_inode_block + i * sizeof(DWORD), sector_buffer);
     }
 
-    if (write_sector(inode_block_ptr, (BYTE *)sector_buffer) != SUCCESS)
+    if (write_sector(inode_block_ptr, sector_buffer) != SUCCESS)
         return ERROR;
 
     return SUCCESS;
