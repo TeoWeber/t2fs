@@ -23,9 +23,9 @@ void initialize_file_system()
     is_the_root_dir_open = false;
 
     // Inicializa o mbr
-		unsigned char sector[SECTOR_SIZE];
-		read_sector(0, sector);
-		memcpy( (void*)&mbr, (void*)sector, SECTOR_SIZE );
+    unsigned char sector[SECTOR_SIZE];
+    read_sector(0, sector);
+    memcpy((void *)&mbr, (void *)sector, SECTOR_SIZE);
 
     // Inicializa o setor de boot das partições
     partitions[0].boot_sector = mbr.partition0BootSector;
@@ -379,6 +379,7 @@ int set_i_th_record_ptr_on_root_dir_given_itself(DWORD i, Record *record_ptr)
 // Convenção de uso: O primeiro bloco de dados de um arquivo é o i-th bloco de dados, i == 0
 DWORD get_i_th_data_block_ptr_from_file_given_file_inode_number(DWORD i, DWORD inode_number)
 {
+    i++;
     iNode *inode_ptr;
     inode_ptr = get_inode_ptr_given_inode_number(inode_number);
     if (inode_ptr == (iNode *)INVALID_INODE_PTR)
@@ -1091,9 +1092,7 @@ int update_inode_on_disk(int inode_number, iNode inode)
     int inode_entry_offset_in_inode_block = (inode_number % (SECTOR_SIZE / sizeof(iNode))) * sizeof(iNode);
 
     for (unsigned int i = 0; i < sizeof(iNode) / sizeof(DWORD); i++)
-    {
         insert_DWORD_value_in_its_position_on_buffer(((DWORD *)&inode)[i], inode_entry_offset_in_inode_block + i * sizeof(DWORD), sector_buffer);
-    }
 
     if (write_sector(inode_block_ptr, sector_buffer) != SUCCESS)
         return ERROR;
@@ -1170,7 +1169,7 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
         for (int i = 0; i < ptr_per_block; i++)
         {
             if ((unsigned int)(2 + i) < inode.blocksFileSize)
-                data_blocks_ptrs[2+i] = ptrs[i];
+                data_blocks_ptrs[2 + i] = ptrs[i];
         }
     }
 
@@ -1189,8 +1188,8 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
 
             for (int j = 0; j < ptr_per_block; j++)
             {
-                if ((unsigned int)(ptr_per_block + 2 + i*ptr_per_block + j) < inode.blocksFileSize)
-                    data_blocks_ptrs[ptr_per_block + 2 + i*ptr_per_block + j] = ind_ptrs[j];
+                if ((unsigned int)(ptr_per_block + 2 + i * ptr_per_block + j) < inode.blocksFileSize)
+                    data_blocks_ptrs[ptr_per_block + 2 + i * ptr_per_block + j] = ind_ptrs[j];
             }
         }
     }
@@ -1217,6 +1216,6 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
 
     if (closeBitmap2() != SUCCESS)
         return ERROR;
-	
+
     return SUCCESS;
 }
