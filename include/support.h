@@ -54,8 +54,6 @@ typedef struct t_open_file
 
 extern boolean file_system_initialized;
 
-extern MBR mbr;
-
 extern Partition partitions[MAX_PARTITIONS];
 extern int mounted_partition_index;
 
