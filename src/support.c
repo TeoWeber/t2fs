@@ -1169,13 +1169,13 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
 
         for (int i = 0; i < ptr_per_block; i++)
         {
-            if (2 + i < inode.blocksFileSize)
+            if ((unsigned int)(2 + i) < inode.blocksFileSize)
                 data_blocks_ptrs[2+i] = ptrs[i];
         }
     }
 
     // ponteiro de indireção dupla
-    if (inode.blocksFileSize > ptr_per_block + 2)
+    if (inode.blocksFileSize > (unsigned int)(ptr_per_block + 2))
     {
         DWORD ptrs[ptr_per_block];
         if (get_data_block_ptrs_from_block_of_data_block_ptrs_given_its_ptr(inode.doubleIndPtr, ptrs) != SUCCESS)
@@ -1189,7 +1189,7 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
 
             for (int j = 0; j < ptr_per_block; j++)
             {
-                if (ptr_per_block + 2 + i*ptr_per_block + j < inode.blocksFileSize)
+                if ((unsigned int)(ptr_per_block + 2 + i*ptr_per_block + j) < inode.blocksFileSize)
                     data_blocks_ptrs[ptr_per_block + 2 + i*ptr_per_block + j] = ind_ptrs[j];
             }
         }
@@ -1217,4 +1217,6 @@ int free_data_blocks_from_file_given_its_inode(iNode inode)
 
     if (closeBitmap2() != SUCCESS)
         return ERROR;
+	
+    return SUCCESS;
 }
