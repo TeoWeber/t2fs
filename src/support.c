@@ -23,7 +23,7 @@ void initialize_file_system()
     is_the_root_dir_open = false;
 
     // Inicializa o mbr
-    read_sector(0, (BYTE *)&mbr);
+    read_sector(0, (unsigned char *)&mbr);
 
     // Inicializa o setor de boot das partições
     partitions[0].boot_sector = mbr.partition0BootSector;
