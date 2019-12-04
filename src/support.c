@@ -184,7 +184,7 @@ int format_root_dir(int partition)
     iNode inode;
     define_empty_inode_from_inode_ptr(&inode);
 
-    if ((inode.dataPtr[0] = get_data_block_ptr_given_data_block_number(0)) == INVALID_PTR)
+    if ((inode.dataPtr[0] = get_data_block_ptr_given_data_block_number(0, partition)) == INVALID_PTR)
         return ERROR;
     inode.blocksFileSize += 1;
 
@@ -657,7 +657,7 @@ int initialize_new_block_of_data_block_ptrs_and_get_its_number()
     DWORD data_block_ptr_aux_buffer;
     if ((data_block_number_aux_buffer = get_free_data_block_number_in_partition()) == 0)
         return ERROR;
-    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
         return ERROR;
 
     char emptyBuffer[SECTOR_SIZE];
@@ -713,7 +713,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 free(inode_ptr);
                 return ERROR;
             }
-            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
             {
                 free(inode_ptr);
                 return ERROR;
@@ -751,7 +751,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 free(inode_ptr);
                 return ERROR;
             }
-            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
             {
                 free(inode_ptr);
                 return ERROR;
@@ -792,7 +792,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 free(inode_ptr);
                 return ERROR;
             }
-            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
             {
                 free(inode_ptr);
                 return ERROR;
@@ -820,7 +820,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                         free(inode_ptr);
                         return ERROR;
                     }
-                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
                     {
                         free(inode_ptr);
                         return ERROR;
@@ -865,7 +865,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                 free(inode_ptr);
                 return ERROR;
             }
-            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
             {
                 free(inode_ptr);
                 return ERROR;
@@ -895,7 +895,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                         free(inode_ptr);
                         return ERROR;
                     }
-                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                    if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
                     {
                         free(inode_ptr);
                         return ERROR;
@@ -926,7 +926,7 @@ int write_n_bytes_to_file_given_its_inode_number(DWORD ptr, int n, int inode_num
                                 free(inode_ptr);
                                 return ERROR;
                             }
-                            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer)) == INVALID_PTR)
+                            if ((data_block_ptr_aux_buffer = get_data_block_ptr_given_data_block_number(data_block_number_aux_buffer, mounted_partition_index)) == INVALID_PTR)
                             {
                                 free(inode_ptr);
                                 return ERROR;
@@ -1101,15 +1101,15 @@ int update_inode_on_disk(int inode_number, iNode inode)
     return SUCCESS;
 }
 
-DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number)
+DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number, int partition)
 {
-    WORD block_size = partitions[mounted_partition_index].super_block.blockSize;
-    WORD super_block_size = partitions[mounted_partition_index].super_block.superblockSize;
-    WORD inode_bitmap_size = partitions[mounted_partition_index].super_block.freeInodeBitmapSize;
-    WORD data_block_bitmap_size = partitions[mounted_partition_index].super_block.freeBlocksBitmapSize;
-    DWORD inode_disk_area_size = partitions[mounted_partition_index].number_of_inodes * sizeof(iNode) / SECTOR_SIZE;
+    WORD block_size = partitions[partition].super_block.blockSize;
+    WORD super_block_size = partitions[partition].super_block.superblockSize;
+    WORD inode_bitmap_size = partitions[partition].super_block.freeInodeBitmapSize;
+    WORD data_block_bitmap_size = partitions[partition].super_block.freeBlocksBitmapSize;
+    DWORD inode_disk_area_size = partitions[partition].number_of_inodes * sizeof(iNode) / SECTOR_SIZE;
 
-    DWORD partition_boot_sector_ptr = partitions[mounted_partition_index].boot_sector;
+    DWORD partition_boot_sector_ptr = partitions[partition].boot_sector;
     DWORD data_block_disk_area_ptr_offset_in_partition = (DWORD)block_size * ((DWORD)super_block_size +
                                                                               (DWORD)inode_bitmap_size +
                                                                               (DWORD)data_block_bitmap_size +
