@@ -31,6 +31,7 @@ typedef struct t_mbr
     DWORD partition3FinalSector;
     BYTE partition3Name[24];
 
+    char padding[120];
 } MBR;
 
 typedef struct t_partition
