@@ -119,7 +119,7 @@ iNode *get_inode_ptr_given_inode_number(DWORD inode_number);
 
 int update_inode_on_disk(int inode_number, iNode inode);
 
-DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number);
+DWORD get_data_block_ptr_given_data_block_number(DWORD data_block_number, int partition);
 
 DWORD get_data_block_number_given_data_block_ptr(DWORD data_block_ptr);
 
